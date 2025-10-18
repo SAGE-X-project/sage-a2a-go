@@ -290,28 +290,58 @@ go test ./test/integration/... -tags=integration
 
 This project maintains **90%+ test coverage**. All code is developed using TDD (Test-Driven Development).
 
+## Examples
+
+Complete working examples are available in the [`cmd/examples/`](cmd/examples/) directory:
+
+### 1. [Simple Agent](cmd/examples/simple-agent/)
+Basic agent with DID and Agent Card creation
+```bash
+go run ./cmd/examples/simple-agent/main.go
+```
+
+### 2. [Agent Communication](cmd/examples/agent-communication/)
+Secure agent-to-agent HTTP communication with DID-based signatures
+```bash
+go run ./cmd/examples/agent-communication/main.go
+```
+
+### 3. [Multi-Key Agent](cmd/examples/multi-key-agent/)
+Managing multiple cryptographic keys across different blockchain protocols
+```bash
+go run ./cmd/examples/multi-key-agent/main.go
+```
+
+Each example demonstrates key concepts with complete, runnable code.
+
 ## Documentation
 
-- [Design Documentation](docs/design.md)
-- [API Reference](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)
-- [Integration Guide](SAGE_A2A_INTEGRATION_GUIDE.md)
-- [A2A Migration Guide](A2A_MIGRATION_GUIDE.md)
+- **[Integration Guide](docs/INTEGRATION_GUIDE.md)** - Complete guide for integrating into your project
+- **[Design Documentation](docs/design.md)** - Architecture and technical design
+- **[API Reference](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)** - GoDoc API documentation
+- **[Todo List](docs/Todo.md)** - Development progress and tasks
+- **[SAGE Integration](SAGE_A2A_INTEGRATION_GUIDE.md)** - SAGE-specific integration
+- **[A2A Migration](A2A_MIGRATION_GUIDE.md)** - Migrating from A2A
 
 ## Project Structure
 
 ```
 sage-a2a-go/
 ├── cmd/
-│   └── example/          # Example applications
-├── docs/                 # Documentation
-│   ├── Todo.md          # Development tasks
-│   └── design.md        # Design documentation
+│   └── examples/            # Example applications
+│       ├── simple-agent/    # Basic DID and Agent Card example
+│       ├── agent-communication/  # HTTP signing and verification
+│       └── multi-key-agent/ # Multi-key management example
+├── docs/                    # Documentation
+│   ├── Todo.md             # Development progress
+│   ├── design.md           # Architecture design
+│   └── INTEGRATION_GUIDE.md # Integration guide
 ├── pkg/
-│   ├── verifier/        # DIDVerifier and KeySelector
-│   ├── signer/          # A2ASigner and AgentCardSigner
-│   └── protocol/        # A2A protocol integration
+│   ├── verifier/           # DIDVerifier, KeySelector, RFC9421Verifier
+│   ├── signer/             # A2ASigner for HTTP message signing
+│   └── protocol/           # Agent Card implementation
 ├── test/
-│   └── integration/     # Integration tests
+│   └── integration/        # Integration tests
 ├── go.mod
 ├── go.sum
 ├── README.md
