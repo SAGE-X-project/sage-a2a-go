@@ -4,7 +4,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![SAGE Version](https://img.shields.io/badge/SAGE-v1.1.0-blue)](https://github.com/sage-x-project/sage)
-[![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
 ## Overview
 
@@ -380,7 +380,7 @@ Example: feat: implement DIDVerifier with RFC9421 support
 
 ### Best Practices
 
-- Always use HTTPS/TLS 1.3+
+- Always use HTTPS/TLS 1.2+
 - Validate timestamps in signatures
 - Rotate keys regularly
 - Use mTLS for agent-to-agent communication
@@ -388,7 +388,9 @@ Example: feat: implement DIDVerifier with RFC9421 support
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE) for details.
+This project is licensed under the GNU Lesser General Public License v3.0 (LGPL-3.0) - see the [LICENSE](LICENSE) file for details.
+
+This project uses SAGE (https://github.com/sage-x-project/sage) which is licensed under LGPL-3.0. As a derivative work, this project is also licensed under LGPL-3.0 to comply with the copyleft requirements.
 
 ## References
 
@@ -403,7 +405,3 @@ Apache License 2.0. See [LICENSE](LICENSE) for details.
 - **GitHub**: [sage-x-project/sage-a2a-go](https://github.com/sage-x-project/sage-a2a-go)
 - **Issues**: [Report a bug](https://github.com/sage-x-project/sage-a2a-go/issues)
 - **SAGE Project**: [sage-x-project](https://github.com/sage-x-project)
-
----
-
-**Built with ❤️ by the SAGE Development Team**
