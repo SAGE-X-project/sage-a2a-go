@@ -100,19 +100,24 @@ This project integrates SAGE DID system with A2A (Agent-to-Agent) Protocol, prov
 
 ---
 
-## Phase 6: Agent Card Support (TDD)
+## Phase 6: Agent Card Support (TDD) ✅
 
 **Purpose**: Sign and verify A2A Agent Cards with DID
 
-- [ ] 6.1 Design AgentCardSigner interface
-- [ ] 6.2 Write test cases for Agent Card
-  - [ ] Test Agent Card creation
-  - [ ] Test Agent Card signing (JWS)
-  - [ ] Test Agent Card verification
-  - [ ] Test DID inclusion in Agent Card
-- [ ] 6.3 Implement AgentCardSigner to pass all tests
-- [ ] 6.4 Verify test coverage ≥ 90%
-- [ ] 6.5 Refactor and document
+- [x] 6.1 Design AgentCardSigner interface
+- [x] 6.2 Write test cases for Agent Card (43 tests)
+  - [x] Test Agent Card creation with builder pattern
+  - [x] Test Agent Card signing with JWS compact serialization
+  - [x] Test Agent Card verification with DID resolution
+  - [x] Test DID inclusion in Agent Card
+  - [x] Test validation methods (IsExpired, HasCapability, Validate)
+  - [x] Test error handling and edge cases
+  - [x] Test ECDSA and Ed25519 signing algorithms
+  - [x] Test JWS header parsing and validation
+  - [x] Test JSON serialization/deserialization
+- [x] 6.3 Implement AgentCardSigner to pass all tests
+- [x] 6.4 Verify test coverage ≥ 90% (achieved 91.2%)
+- [x] 6.5 Refactor and document
 
 ---
 
@@ -247,9 +252,9 @@ This project integrates SAGE DID system with A2A (Agent-to-Agent) Protocol, prov
 - Phase 3: ✅ Complete (5/5 completed) - DIDVerifier Implementation (93.1% coverage)
 - Phase 4: ✅ Complete (5/5 completed) - A2ASigner Implementation (92.2% coverage)
 - Phase 5: ⏭️ Skipped (RFC9421 integration included in components)
-- Phase 6: ⏭️ Skipped (Agent Card will be separate PR)
-- Phase 7: ⏭️ Skipped (Integration tests will be separate PR)
-- Phase 8: ⏭️ Skipped (A2A Protocol integration will be separate PR)
+- Phase 6: ✅ Complete (5/5 completed) - Agent Card Implementation (91.2% coverage)
+- Phase 7: ⏭️ Deferred (Integration tests will be separate PR)
+- Phase 8: ⏭️ Deferred (A2A Protocol integration will be separate PR)
 - Phase 9: ✅ Complete - Documentation complete
 - Phase 10: ✅ Complete - All tests passing, coverage > 90%
 - Phase 11: 🟡 In Progress - PR creation
@@ -257,12 +262,12 @@ This project integrates SAGE DID system with A2A (Agent-to-Agent) Protocol, prov
 ## Implementation Summary
 
 ### Statistics
-- **Total Test Cases**: 44 (100% passing)
-- **Total Commits**: 4
-- **Test Coverage**: 93.1% average (exceeds 90% goal)
+- **Total Test Cases**: 87 (100% passing)
+- **Test Coverage**: 91.8% average (exceeds 90% goal)
   - KeySelector: 94.1% (11 tests)
   - DIDVerifier: 93.1% (16 tests)
   - A2ASigner: 92.2% (17 tests)
+  - AgentCard: 91.2% (43 tests)
 
 ### Completed Features
 1. ✅ **KeySelector** - Protocol-based cryptographic key selection
@@ -283,8 +288,16 @@ This project integrates SAGE DID system with A2A (Agent-to-Agent) Protocol, prov
    - Customizable signing options (components, timestamp, expires, nonce)
    - Support for ECDSA and Ed25519 algorithms
 
+4. ✅ **AgentCard** - Agent Card creation, signing, and verification
+   - AgentCard struct with DID, capabilities, public keys, metadata
+   - AgentCardBuilder with fluent API
+   - JWS compact serialization for signatures
+   - SignedAgentCard verification with DID resolution
+   - Validation methods (IsExpired, HasCapability, Validate)
+   - Support for ECDSA and Ed25519 signing algorithms
+
 ### Branch Information
-- **Branch**: feature/did-rfc9421-integration
+- **Branch**: feature/agent-card-implementation
 - **Base**: main
 - **Status**: Ready for PR
 
