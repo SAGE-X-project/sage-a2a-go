@@ -86,12 +86,14 @@ Sign HTTP messages for A2A communication:
 
 ### AgentCardSigner
 
-Sign and verify A2A Agent Cards:
+Sign and verify A2A Agent Cards with comprehensive metadata:
 
-- Create Agent Cards with DID identity
-- Sign with JSON Web Signatures (JWS)
-- Verify Agent Card authenticity
-- Integrate with A2A protocol
+- **Builder Pattern**: Fluent API for creating Agent Cards
+- **JWS Signatures**: JSON Web Signature (JWS) compact serialization
+- **DID Integration**: Agent Cards include blockchain-anchored DIDs
+- **Metadata Support**: Capabilities, public keys, expiration, custom metadata
+- **Verification**: Cryptographic verification with DID resolution
+- **Validation**: Built-in methods for checking expiration and capabilities
 
 ## Installation
 
@@ -200,23 +202,53 @@ pubKey, keyType, err := selector.SelectKey(ctx, agentDID, "solana")
 
 ### Agent Card
 
-Create and sign Agent Cards:
+Create and sign Agent Cards using the fluent builder API:
 
 ```go
-// Create Agent Card
-card := &protocol.AgentCard{
-    DID:          "did:sage:ethereum:0x...",
-    Name:         "MyAgent",
-    Description:  "AI Agent with DID authentication",
-    Endpoint:     "https://agent.example.com",
-    Capabilities: []string{"task.create", "task.execute"},
+import (
+    "github.com/sage-x-project/sage-a2a-go/pkg/protocol"
+    "github.com/sage-x-project/sage/pkg/agent/did"
+)
+
+// Create Agent Card with builder pattern
+agentDID := did.AgentDID("did:sage:ethereum:0x...")
+card := protocol.NewAgentCardBuilder(agentDID, "MyAgent", "https://agent.example.com").
+    WithDescription("AI Agent with DID authentication").
+    WithCapabilities("task.create", "task.execute", "messaging.send").
+    WithMetadata("region", "us-west-2").
+    WithExpiresAt(time.Now().Add(365 * 24 * time.Hour)).
+    Build()
+
+// Validate Agent Card
+if err := card.Validate(); err != nil {
+    log.Fatal(err)
 }
 
-// Sign Agent Card
-signedCard, err := signer.SignAgentCard(ctx, card, keyPair)
+// Create signer with DID resolution client
+cardSigner := protocol.NewDefaultAgentCardSigner(client)
 
-// Verify Agent Card
-err = verifier.VerifyAgentCard(ctx, signedCard)
+// Sign Agent Card with JWS
+ctx := context.Background()
+signedCard, err := cardSigner.SignAgentCard(ctx, card, keyPair)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Verify Agent Card signature (resolves public key from DID)
+err = cardSigner.VerifyAgentCard(ctx, signedCard)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Check capabilities
+if card.HasCapability("task.execute") {
+    fmt.Println("Agent can execute tasks")
+}
+
+// Check expiration
+if card.IsExpired() {
+    fmt.Println("Agent Card has expired")
+}
 ```
 
 ## Development
