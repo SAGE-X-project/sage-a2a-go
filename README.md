@@ -14,6 +14,8 @@
 
 `sage-a2a-go` provides **DID-authenticated HTTP/JSON-RPC 2.0 transport** for [a2a-go](https://github.com/a2aproject/a2a-go), enabling secure agent-to-agent communication with blockchain-anchored identity.
 
+> **Note**: This project uses a [SAGE-X fork of a2a-go](https://github.com/SAGE-X-project/a2a-go) with critical bug fixes for Message Parts marshaling. See [Bug Fix](#-critical-bug-fix) section below.
+
 ### What It Does
 
 - ✅ **HTTP/JSON-RPC 2.0 Transport**: Required by A2A spec (a2a-go only has gRPC)
@@ -21,6 +23,7 @@
 - ✅ **Blockchain Identity**: SAGE DIDs anchored on Ethereum/Solana/Kaia
 - ✅ **Drop-in for a2a-go**: Use standard a2a-go Client with DID auth
 - ✅ **Zero Code Duplication**: Wraps a2a-go, doesn't reimplement
+- ✅ **Bug Fixes**: Includes critical Message Parts marshaling fix
 
 ### Why You Need This
 
@@ -70,8 +73,16 @@
 
 ```bash
 go get github.com/sage-x-project/sage-a2a-go
-go get github.com/a2aproject/a2a-go
 ```
+
+The project automatically uses the [SAGE-X fork of a2a-go](https://github.com/SAGE-X-project/a2a-go) via `replace` directive in `go.mod`:
+
+```go
+// Use SAGE-X fork with bug fixes
+replace github.com/a2aproject/a2a-go => github.com/SAGE-X-project/a2a-go v0.0.0-20251026124015-70634d9eddae
+```
+
+This ensures you get critical bug fixes for Message Parts marshaling automatically.
 
 ## Quick Start
 
@@ -232,6 +243,38 @@ Signature: sig1=:base64signature:
 {"jsonrpc":"2.0","method":"message/send","params":{...},"id":1}
 ```
 
+## 🔧 Critical Bug Fix
+
+### Message Parts Marshaling Issue
+
+The official a2a-go library had a critical bug in message unmarshaling where `Message.Parts` would unmarshal as **value types** instead of **pointer types**, causing message transmission failures in agent-to-agent communication.
+
+**Problem**:
+```go
+// After unmarshaling with official a2a-go
+msg.Parts[0]  // Type: a2a.TextPart (value) ❌
+```
+
+**Solution**:
+The [SAGE-X fork](https://github.com/SAGE-X-project/a2a-go) fixes this in `a2a/core.go:304-332`:
+
+```go
+// Fixed UnmarshalJSON implementation
+case "text":
+    var part TextPart
+    if err := json.Unmarshal(rawMsg, &part); err != nil {
+        return err
+    }
+    result[i] = &part  // Return pointer type ✅
+```
+
+**Impact**:
+- ✅ Messages now transmit correctly between agents
+- ✅ All 173 tests passing with strict pointer type validation
+- ✅ E2E tests verify correct behavior
+
+This project automatically uses the fixed fork, so you don't need to worry about this issue.
+
 ## Components
 
 ### 1. DID HTTP Transport (`pkg/transport/`)
@@ -264,7 +307,7 @@ Implements HTTP/JSON-RPC 2.0 with DID signatures:
 
 ### ✅ Complete A2A Protocol Support
 
-All 10 client methods from A2A v0.3.0 specification.
+All 10 client methods from A2A v0.4.0 specification with **91.8% test coverage** and comprehensive E2E tests.
 
 ### ✅ Blockchain-Anchored Identity
 
@@ -291,6 +334,65 @@ DIDs stored on:
 - Wraps a2a-go instead of reimplementing
 - Automatic updates when a2a-go updates
 - Clean separation of concerns
+
+## Testing
+
+### Test Coverage
+
+The project maintains **91.8% average test coverage** across all packages:
+
+| Package | Coverage | Tests |
+|---------|----------|-------|
+| `pkg/server` | 100.0% | 🏆 Full coverage |
+| `pkg/client` | 92.3% | Unit + integration |
+| `pkg/signer` | 92.2% | HTTP signing tests |
+| `pkg/protocol` | 91.2% | Card validation |
+| `pkg/verifier` | 88.0% | DID verification |
+| `pkg/transport` | 87.2% | HTTP transport |
+| **Total** | **91.8%** | **173 tests** |
+
+### End-to-End Tests
+
+Comprehensive E2E tests in `test/e2e/` verify real-world scenarios:
+
+```bash
+# Run E2E tests
+go test ./test/e2e/... -v
+```
+
+**Test Coverage**:
+- ✅ Full HTTP request/response cycle
+- ✅ DID signature verification
+- ✅ SSE streaming with multiple messages
+- ✅ Task operations (get, list, cancel)
+- ✅ Timeout handling
+- ✅ Error propagation
+- ✅ Message Parts pointer type validation
+
+**9 test cases** covering:
+1. `SendMessage_Success` - Complete message flow
+2. `GetAgentCard_Success` - Agent card retrieval
+3. `Timeout_HandledCorrectly` - Timeout scenarios
+4. `StreamMessage_Success` - SSE streaming with 3 messages
+5. `GetTask_Success` - Task retrieval
+6. `ListTasks_Success` - Task listing with pagination
+7. `CancelTask_Success` - Task cancellation
+
+### Running Tests
+
+```bash
+# All tests
+make test-all
+
+# Unit tests only
+make test
+
+# With coverage report
+make test-coverage
+
+# E2E tests
+go test ./test/e2e/... -v
+```
 
 ## Documentation
 
@@ -505,14 +607,19 @@ info := sagea2a.GetVersionInfo()
 // info.SAGEVersion = "1.3.1"
 ```
 
-### Updating a2a-go
+### Updating Dependencies
 
-When a2a-go updates:
+When updating a2a-go (using SAGE-X fork):
 ```bash
-go get -u github.com/a2aproject/a2a-go
+# Update to latest fork version
+go get -u github.com/SAGE-X-project/a2a-go
 go mod tidy
 go test ./...
 ```
+
+The project uses the SAGE-X fork to ensure critical bug fixes are included. Monitor both repositories:
+- **Official**: [a2aproject/a2a-go](https://github.com/a2aproject/a2a-go)
+- **Fork (used)**: [SAGE-X-project/a2a-go](https://github.com/SAGE-X-project/a2a-go)
 
 ## Roadmap
 
@@ -536,19 +643,36 @@ go test ./...
 
 ## Contributing
 
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Quick Start for Contributors
+
 1. Fork the repository
-2. Create feature branch
-3. Write tests (TDD approach)
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Write tests (TDD approach - maintain 90%+ coverage)
 4. Implement feature
-5. Submit Pull Request
+5. Run tests: `make test-all`
+6. Run linter: `make lint`
+7. Submit Pull Request
 
 ### Commit Format
 ```
 <type>: <subject>
 
-Types: feat, fix, test, refactor, docs
+Types: feat, fix, test, refactor, docs, chore
 Example: feat: add SSE streaming support
 ```
+
+### Working with the a2a-go Fork
+
+This project uses a SAGE-X fork of a2a-go. If you need to modify a2a-go:
+
+1. Fork is at: https://github.com/SAGE-X-project/a2a-go
+2. Local development: Use `replace` directive in `go.mod`
+3. Submit fixes to the fork first
+4. Update the fork version in this project
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full details.
 
 ## Security
 
@@ -574,8 +698,9 @@ LGPL-3.0 - see [LICENSE](LICENSE)
 
 ## References
 
-- [A2A Protocol](https://a2a-protocol.org) - v0.3.0 specification
-- [a2a-go](https://github.com/a2aproject/a2a-go) - Go SDK
+- [A2A Protocol](https://a2a-protocol.org) - v0.4.0 specification
+- [a2a-go (Official)](https://github.com/a2aproject/a2a-go) - Go SDK
+- [a2a-go (SAGE-X Fork)](https://github.com/SAGE-X-project/a2a-go) - Fork with bug fixes (used by this project)
 - [SAGE](https://github.com/sage-x-project/sage) - DID infrastructure
 - [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html) - HTTP Signatures
 - [DID Core](https://www.w3.org/TR/did-core/) - W3C Specification
