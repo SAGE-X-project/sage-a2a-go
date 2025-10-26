@@ -3,7 +3,7 @@
 **DID-Authenticated HTTP Transport for A2A Protocol**
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
-[![A2A Protocol](https://img.shields.io/badge/A2A-v0.3.0-green)](https://a2a-protocol.org)
+[![A2A Protocol](https://img.shields.io/badge/A2A-v0.4.0-green)](https://a2a-protocol.org)
 [![SAGE Version](https://img.shields.io/badge/SAGE-v1.3.1-blue)](https://github.com/sage-x-project/sage)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
@@ -470,7 +470,7 @@ sage-a2a-go tracks versions of its dependencies:
 import "github.com/sage-x-project/sage-a2a-go"
 
 info := sagea2a.GetVersionInfo()
-// info.A2AProtocolVersion = "0.3.0"
+// info.A2AProtocolVersion = "0.4.0"
 // info.SAGEVersion = "1.3.1"
 ```
 
@@ -488,11 +488,12 @@ go test ./...
 ### Current (v2.0.0)
 - ✅ HTTP/JSON-RPC 2.0 transport
 - ✅ DID signatures (RFC 9421)
-- ✅ All A2A v0.3.0 methods (except streaming)
+- ✅ A2A v0.4.0 protocol support
+- ✅ Core methods implemented (except streaming and ListTasks)
 
 ### Next (v2.1.0)
 - [ ] Server-Sent Events (SSE) for streaming
-- [ ] A2A v0.4.0 support (ListTasks)
+- [ ] ListTasks method implementation
 - [ ] Performance optimizations
 
 ### Future (v3.0.0)

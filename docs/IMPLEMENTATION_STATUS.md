@@ -64,7 +64,7 @@
 - All transitive dependencies resolved
 
 **✅ Version Tracking** (`versions.go`)
-- A2A Protocol version (0.3.0)
+- A2A Protocol version (0.4.0)
 - SAGE version (1.3.1)
 - GetVersionInfo() function
 
@@ -153,9 +153,13 @@ versions.go                              ~50 lines
 - **Priority**: High (needed for full A2A support)
 
 ### 2. A2A v0.4.0 Features
-- [ ] ListTasks method
-- **Reason**: a2a-go doesn't support v0.4.0 yet
-- **Priority**: Medium (when a2a-go updates)
+- [ ] ListTasks method (tasks/list)
+  - Retrieve and filter tasks with pagination
+  - Cursor-based pagination (pageToken/nextPageToken)
+  - Filter by contextId, status, lastUpdatedAfter
+  - Support pageSize (1-100), historyLength, includeArtifacts
+- **Reason**: Not implemented yet
+- **Priority**: Medium (planned for v2.1.0)
 
 ### 3. Server Components
 - [ ] DID-authenticated server handler

@@ -24,7 +24,7 @@ const (
 
 	// A2AProtocolVersion is the A2A Protocol specification version this library supports
 	// See: https://github.com/a2aproject/A2A
-	A2AProtocolVersion = "0.3.0"
+	A2AProtocolVersion = "0.4.0"
 
 	// MinA2AProtocolVersion is the minimum A2A Protocol version compatible with this library
 	MinA2AProtocolVersion = "0.2.6"

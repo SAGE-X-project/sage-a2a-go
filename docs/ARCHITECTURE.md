@@ -79,7 +79,7 @@ func NewDIDAuthenticatedClient(
 sage-a2a-go/versions.go:
     const (
         Version = "2.0.0-alpha"
-        A2AProtocolVersion = "0.3.0"  // Current supported version
+        A2AProtocolVersion = "0.4.0"  // Current supported version
         MinA2AProtocolVersion = "0.2.6"  // Minimum compatible version
         SAGEVersion = "1.3.1"
     )
@@ -97,7 +97,7 @@ go.mod:
 ```
 
 ### Update Process
-1. **A2A Protocol updates** (e.g., v0.3.0 → v0.4.0):
+1. **A2A Protocol updates** (e.g., v0.4.0 → v0.5.0):
    - Wait for a2a-go to release compatible version
    - Update `go.mod` to new a2a-go version
    - Update `versions.go` constants
@@ -518,7 +518,8 @@ When A2A introduces breaking changes:
 ### Current (v2.0.0)
 - ✅ HTTP/JSON-RPC 2.0 transport
 - ✅ DID signatures (RFC 9421)
-- ✅ All A2A v0.3.0 methods (except streaming)
+- ✅ A2A v0.4.0 protocol support
+- ✅ Core methods implemented (except streaming and ListTasks)
 - ✅ Agent Card signing/verification
 - ✅ Multi-key support
 
@@ -539,6 +540,6 @@ When A2A introduces breaking changes:
 
 **Last Updated**: 2025-10-26
 **Project Version**: 2.0.0-alpha
-**A2A Protocol Version**: 0.3.0
+**A2A Protocol Version**: 0.4.0
 **SAGE Version**: 1.3.1
 **a2a-go Version**: 0.1.0 (local development)
