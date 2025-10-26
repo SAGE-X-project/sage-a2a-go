@@ -226,7 +226,9 @@ clean: ## Clean build artifacts and test cache
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(COVERAGE_DIR)
-	@rm -f coverage.out coverage_signer.out
+	@rm -f coverage.out coverage_*.out final_coverage.out
+	@rm -f test_output.txt
+	@find . -maxdepth 1 -type f -perm +111 ! -name "Makefile" ! -name "*.sh" -delete 2>/dev/null || true
 	@$(GO) clean -cache -testcache -modcache
 	@echo "$(GREEN)✓ Cleanup complete$(NC)"
 
@@ -234,14 +236,22 @@ clean: ## Clean build artifacts and test cache
 clean-build: ## Clean only build artifacts
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
 	@rm -rf $(BUILD_DIR)
+	@find . -maxdepth 1 -type f -perm +111 ! -name "Makefile" ! -name "*.sh" -delete 2>/dev/null || true
 	@echo "$(GREEN)✓ Build artifacts cleaned$(NC)"
 
 .PHONY: clean-coverage
 clean-coverage: ## Clean coverage reports
 	@echo "$(GREEN)Cleaning coverage reports...$(NC)"
 	@rm -rf $(COVERAGE_DIR)
-	@rm -f coverage.out coverage_signer.out
+	@rm -f coverage.out coverage_*.out final_coverage.out
 	@echo "$(GREEN)✓ Coverage reports cleaned$(NC)"
+
+.PHONY: clean-test
+clean-test: ## Clean test output files
+	@echo "$(GREEN)Cleaning test output files...$(NC)"
+	@rm -f test_output.txt
+	@rm -f *.test
+	@echo "$(GREEN)✓ Test output files cleaned$(NC)"
 
 # ==================================================================================== #
 ##@ CI/CD

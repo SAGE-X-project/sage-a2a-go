@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: =¬ Discussions
+    url: https://github.com/sage-x-project/sage-a2a-go/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: =Ú Documentation
+    url: https://github.com/sage-x-project/sage-a2a-go#readme
+    about: Check out our documentation for help and examples

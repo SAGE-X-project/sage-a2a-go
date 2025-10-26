@@ -2,6 +2,9 @@
 
 **DID-Authenticated HTTP Transport for A2A Protocol**
 
+[![CI](https://github.com/sage-x-project/sage-a2a-go/workflows/CI/badge.svg)](https://github.com/sage-x-project/sage-a2a-go/actions)
+[![codecov](https://codecov.io/gh/sage-x-project/sage-a2a-go/branch/main/graph/badge.svg)](https://codecov.io/gh/sage-x-project/sage-a2a-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sage-x-project/sage-a2a-go)](https://goreportcard.com/report/github.com/sage-x-project/sage-a2a-go)
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![A2A Protocol](https://img.shields.io/badge/A2A-v0.4.0-green)](https://a2a-protocol.org)
 [![SAGE Version](https://img.shields.io/badge/SAGE-v1.3.1-blue)](https://github.com/sage-x-project/sage)
@@ -291,13 +294,20 @@ DIDs stored on:
 
 ## Documentation
 
+### 📖 Getting Started
+- **[Integration Guide](docs/INTEGRATION_GUIDE.md)** - Complete integration tutorial
+- **[SSE Streaming Guide](docs/SSE_STREAMING_GUIDE.md)** - Real-time streaming with SSE
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
+
+### 🏗️ Architecture & Design
 - **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
-- **[Integration Guide](docs/INTEGRATION_GUIDE.md)** - Complete integration guide
-- **[Design Documentation](docs/design.md)** - Technical design
+- **[Design Documentation](docs/design.md)** - Technical design details
 - **[Implementation Status](docs/IMPLEMENTATION_STATUS.md)** - Current implementation status
+
+### 🔄 Migration & Advanced
 - **[Migration Guide](docs/A2A_MIGRATION_GUIDE.md)** - Migrating from A2A to sage-a2a-go
-- **[gRPC Transport Implementation](docs/A2A_TRANSPORT_IMPLEMENTATION_GUIDE.md)** - Future gRPC transport guide
-- **[API Reference](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)** - GoDoc
+- **[Changelog](CHANGELOG.md)** - Version history and upgrade guide
+- **[GoDoc](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)** - Generated API docs
 
 ## Examples
 
@@ -485,17 +495,18 @@ go test ./...
 
 ## Roadmap
 
-### Current (v2.0.0)
+### Current (In Development)
 - ✅ HTTP/JSON-RPC 2.0 transport
 - ✅ DID signatures (RFC 9421)
 - ✅ A2A v0.4.0 protocol support
 - ✅ ListTasks method with pagination
-- ✅ Core methods implemented (except streaming)
+- ✅ Server-Sent Events (SSE) for streaming
+- ✅ All core protocol methods implemented
 
-### Next (v2.1.0)
-- [ ] Server-Sent Events (SSE) for streaming
+### Planned for v1.0.0
 - [ ] Performance optimizations
 - [ ] Additional integration tests
+- [ ] Example server implementation
 
 ### Future (v3.0.0)
 - [ ] WebSocket transport

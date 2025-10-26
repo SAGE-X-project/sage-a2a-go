@@ -30,7 +30,7 @@ import (
 
 // This example demonstrates how to create a simple agent with DID and Agent Card
 func main() {
-	fmt.Println("=== Simple Agent with DID Example ===\n")
+	fmt.Println("=== Simple Agent with DID Example ===")
 
 	// Step 1: Create an agent DID
 	// In a real scenario, this would come from blockchain registration
@@ -79,7 +79,7 @@ func main() {
 	fmt.Printf("  Created At:   %s\n", time.Unix(card.CreatedAt, 0).Format(time.RFC3339))
 	fmt.Printf("  Expires At:   %s\n", time.Unix(card.ExpiresAt, 0).Format(time.RFC3339))
 	fmt.Printf("  Metadata:     %v\n", card.Metadata)
-	fmt.Println("  ----------------------------------------\n")
+	fmt.Println("  ----------------------------------------")
 
 	// Step 5: Check capabilities
 	fmt.Println("Step 5: Checking capabilities...")

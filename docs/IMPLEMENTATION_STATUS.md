@@ -17,8 +17,8 @@
 - All 10 A2A protocol methods:
   - GetTask, CancelTask
   - SendMessage
-  - SendStreamingMessage (SSE - TODO)
-  - ResubscribeToTask (SSE - TODO)
+  - SendStreamingMessage (SSE - ✅ Implemented)
+  - ResubscribeToTask (SSE - ✅ Implemented)
   - GetTaskPushConfig, ListTaskPushConfig, SetTaskPushConfig, DeleteTaskPushConfig
   - GetAgentCard
 
@@ -146,11 +146,18 @@ versions.go                              ~50 lines
 
 ## 🚧 Not Yet Implemented
 
-### 1. Streaming Support (SSE)
-- [ ] SendStreamingMessage via Server-Sent Events
-- [ ] ResubscribeToTask via SSE
-- **Reason**: Requires SSE client implementation
-- **Priority**: High (needed for full A2A support)
+### 1. SSE Streaming Support
+- [x] **SendStreamingMessage via Server-Sent Events** - ✅ Implemented!
+  - W3C-compliant SSE parsing
+  - Supports all A2A event types (Message, Task, TaskStatusUpdateEvent, TaskArtifactUpdateEvent)
+  - Context-aware cancellation
+  - DID signatures on all requests
+  - Comprehensive tests (8 test cases)
+- [x] **ResubscribeToTask via SSE** - ✅ Implemented!
+  - Reconnection to existing task streams
+  - Backfill event support
+- **Status**: ✅ Complete
+- **Location**: `pkg/transport/sse.go`, `pkg/transport/did_http_transport.go`
 
 ### 2. A2A v0.4.0 Features
 - [x] **ListTasks method (tasks/list)** - ✅ Implemented!
@@ -169,10 +176,14 @@ versions.go                              ~50 lines
 - **Priority**: Low (future enhancement)
 
 ### 4. Testing
-- [ ] Unit tests for DIDHTTPTransport
+- [x] **Unit tests for DIDHTTPTransport** - ✅ Complete
+  - All core methods tested (GetTask, CancelTask, SendMessage, etc.)
+  - ListTasks with pagination (3 tests)
+  - SSE streaming (8 comprehensive tests)
+  - Error handling and edge cases
 - [ ] Integration tests with real A2A server
-- [ ] Benchmarks for performance
-- **Priority**: High (next immediate task)
+- [ ] Performance benchmarks
+- **Status**: Core testing complete, integration tests pending
 
 ---
 

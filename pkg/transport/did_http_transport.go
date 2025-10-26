@@ -236,21 +236,13 @@ func (t *DIDHTTPTransport) SendMessage(ctx context.Context, message *a2a.Message
 // ResubscribeToTask implements the 'tasks/resubscribe' protocol method.
 // Note: HTTP transport uses Server-Sent Events (SSE) for streaming.
 func (t *DIDHTTPTransport) ResubscribeToTask(ctx context.Context, id *a2a.TaskIDParams) iter.Seq2[a2a.Event, error] {
-	return func(yield func(a2a.Event, error) bool) {
-		// TODO: Implement SSE streaming for HTTP transport
-		// For now, return error
-		yield(nil, fmt.Errorf("ResubscribeToTask: SSE streaming not implemented yet"))
-	}
+	return t.callSSE(ctx, "tasks/resubscribe", id)
 }
 
 // SendStreamingMessage implements the 'message/stream' protocol method (streaming).
 // Note: HTTP transport uses Server-Sent Events (SSE) for streaming.
 func (t *DIDHTTPTransport) SendStreamingMessage(ctx context.Context, message *a2a.MessageSendParams) iter.Seq2[a2a.Event, error] {
-	return func(yield func(a2a.Event, error) bool) {
-		// TODO: Implement SSE streaming for HTTP transport
-		// For now, return error
-		yield(nil, fmt.Errorf("SendStreamingMessage: SSE streaming not implemented yet"))
-	}
+	return t.callSSE(ctx, "message/stream", message)
 }
 
 // GetTaskPushConfig implements the 'tasks/pushNotificationConfig/get' protocol method.

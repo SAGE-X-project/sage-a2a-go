@@ -65,7 +65,7 @@ func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDI
 
 // This example demonstrates managing an agent with multiple cryptographic keys
 func main() {
-	fmt.Println("=== Multi-Key Agent Example ===\n")
+	fmt.Println("=== Multi-Key Agent Example ===")
 
 	ctx := context.Background()
 
@@ -143,7 +143,7 @@ func main() {
 		fmt.Printf("    KeyData: %s...\n", keyInfo.KeyData[:min(40, len(keyInfo.KeyData))])
 		fmt.Println()
 	}
-	fmt.Println("  ----------------------------------------\n")
+	fmt.Println("  ----------------------------------------")
 
 	// Step 5: Set up mock blockchain with both keys
 	fmt.Println("Step 5: Registering keys on blockchain (mock)...")
@@ -158,7 +158,7 @@ func main() {
 	}
 
 	fmt.Println("  ✓ ECDSA key registered for Ethereum protocol")
-	fmt.Println("  ✓ Ed25519 key registered for Solana protocol\n")
+	fmt.Println("  ✓ Ed25519 key registered for Solana protocol")
 
 	// Step 6: Demonstrate protocol-based key selection
 	fmt.Println("Step 6: Protocol-based key selection...")
@@ -207,7 +207,7 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("  %s\n", string(cardJSON))
-	fmt.Println("  ----------------------------------------\n")
+	fmt.Println("  ----------------------------------------")
 
 	// Step 8: Demonstrate cross-chain capabilities
 	fmt.Println("Step 8: Cross-chain operation simulation...")
