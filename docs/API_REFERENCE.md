@@ -1,12 +1,15 @@
 # API Reference
 
-Complete API reference for sage-a2a-go v2.0.0.
+Complete API reference for sage-a2a-go v1.0.0-dev.
+
+> **Note**: This project uses [SAGE-X-project/a2a-go](https://github.com/SAGE-X-project/a2a-go) fork with critical bug fixes.
 
 ## Table of Contents
 
 - [Transport Package](#transport-package)
   - [DIDHTTPTransport](#didhttptransport)
   - [Factory Functions](#factory-functions)
+- [Version Package](#version-package)
 - [Protocol Package](#protocol-package)
 - [Signer Package](#signer-package)
 - [Verifier Package](#verifier-package)
@@ -491,6 +494,61 @@ client, err := a2aclient.NewFromCard(
     targetCard,
     transport.WithDIDHTTPTransport(myDID, myKeyPair, nil),
     a2aclient.WithConfig(a2aclient.Config{...}),
+)
+```
+
+---
+
+## Version Package
+
+`import "github.com/sage-x-project/sage-a2a-go/pkg/version"`
+
+Provides version information for sage-a2a-go and its dependencies.
+
+### Get
+
+Returns detailed version information.
+
+```go
+func Get() Info
+```
+
+**Returns:** Info struct with all version details
+
+**Example:**
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/version"
+
+info := version.Get()
+fmt.Printf("sage-a2a-go: %s\n", info.SageA2AVersion)
+fmt.Printf("A2A Protocol: %s\n", info.A2AProtocolVersion)
+fmt.Printf("SAGE: %s\n", info.SAGEVersion)
+fmt.Printf("a2a-go fork: %s\n", info.A2AGoForkVersion)
+```
+
+### Info
+
+Version information structure.
+
+```go
+type Info struct {
+    SageA2AVersion        string  // Current version of sage-a2a-go
+    A2AProtocolVersion    string  // A2A Protocol specification version
+    MinA2AProtocolVersion string  // Minimum compatible A2A Protocol version
+    SAGEVersion           string  // Required SAGE core version
+    A2AGoForkVersion      string  // SAGE-X fork version of a2a-go
+}
+```
+
+### Constants
+
+```go
+const (
+    Version               = "1.0.0-dev"
+    A2AProtocolVersion    = "0.4.0"
+    MinA2AProtocolVersion = "0.2.6"
+    SAGEVersion           = "1.3.1"
+    A2AGoForkVersion      = "v0.0.0-20251026124015-70634d9eddae"
 )
 ```
 

@@ -4,8 +4,10 @@
 
 sage-a2a-go provides **DID-authenticated HTTP/JSON-RPC 2.0 transport** for the A2A protocol by integrating:
 - **A2A Protocol** (specification) - Agent-to-Agent protocol definitions
-- **a2a-go** (SDK implementation) - Go SDK for A2A protocol
+- **a2a-go** (SDK implementation) - Go SDK for A2A protocol (using SAGE-X fork with bug fixes)
 - **SAGE** (DID infrastructure) - Blockchain-anchored identity and cryptography
+
+> **Note**: This project uses [SAGE-X-project/a2a-go](https://github.com/SAGE-X-project/a2a-go) fork with critical Message Parts marshaling bug fixes.
 
 ## Design Principles
 
@@ -75,26 +77,37 @@ func NewDIDAuthenticatedClient(
 ## Version Management Strategy
 
 ### A2A Protocol Version Tracking
-```
-sage-a2a-go/versions.go:
-    const (
-        Version = "2.0.0-alpha"
-        A2AProtocolVersion = "0.4.0"  // Current supported version
-        MinA2AProtocolVersion = "0.2.6"  // Minimum compatible version
-        SAGEVersion = "1.3.1"
-    )
+```go
+// pkg/version/version.go
+package version
+
+const (
+    Version               = "1.0.0-dev"         // Current version (targeting v1.0.0)
+    A2AProtocolVersion    = "0.4.0"             // Current supported version
+    MinA2AProtocolVersion = "0.2.6"             // Minimum compatible version
+    SAGEVersion           = "1.3.1"             // Required SAGE version
+    A2AGoForkVersion      = "v0.0.0-20251026124015-70634d9eddae"  // SAGE-X fork
+)
+
+func Get() Info { /* returns version info */ }
 ```
 
 ### Dependency Version Pinning
-```
-go.mod:
-    require (
-        github.com/a2aproject/a2a-go v0.1.0
-        github.com/sage-x-project/sage v1.3.1
-    )
+```go
+// go.mod
+require (
+    github.com/a2aproject/a2a-go v0.0.0-20251023091533-c732060cb007
+    github.com/sage-x-project/sage v1.3.1
+)
 
-    replace github.com/a2aproject/a2a-go => ../a2a-go  // Local development
+// Use SAGE-X fork with bug fixes
+replace github.com/a2aproject/a2a-go => github.com/SAGE-X-project/a2a-go v0.0.0-20251026124015-70634d9eddae
 ```
+
+**Why SAGE-X Fork?**
+- Fixes critical Message Parts marshaling bug (pointer vs value types)
+- Ensures messages transmit correctly between agents
+- All changes submitted upstream to official repository
 
 ### Update Process
 1. **A2A Protocol updates** (e.g., v0.4.0 → v0.5.0):
