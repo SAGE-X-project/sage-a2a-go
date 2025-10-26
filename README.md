@@ -622,23 +622,27 @@ The project uses the SAGE-X fork to ensure critical bug fixes are included. Moni
 
 ## Roadmap
 
-### Current (In Development)
+### v1.0.0-dev (Current)
 - ✅ HTTP/JSON-RPC 2.0 transport
 - ✅ DID signatures (RFC 9421)
 - ✅ A2A v0.4.0 protocol support
-- ✅ ListTasks method with pagination
 - ✅ Server-Sent Events (SSE) for streaming
-- ✅ All core protocol methods implemented
+- ✅ All core protocol methods (GetTask, SendMessage, ListTasks, etc.)
+- ✅ DID authentication middleware for servers
+- ✅ 91.8% test coverage (173 tests: Unit + Integration + E2E)
+- ✅ 6 complete example programs
+- ✅ Comprehensive documentation
 
-### Planned for v1.0.0
-- [ ] Performance optimizations
-- [ ] Additional integration tests
-- [ ] Example server implementation
+### Planned for v1.0.0 Release
+- [ ] Performance benchmarking and optimizations
+- [ ] Production deployment guide
+- [ ] Complete HTTP server example with JSON-RPC handler
 
-### Future (v3.0.0)
+### Future (v2.0.0+)
 - [ ] WebSocket transport
-- [ ] HTTP/2 support
-- [ ] Metrics and observability
+- [ ] HTTP/2 and HTTP/3 support
+- [ ] Metrics and observability (OpenTelemetry)
+- [ ] Rate limiting and quota management
 
 ## Contributing
 
