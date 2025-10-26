@@ -291,9 +291,12 @@ DIDs stored on:
 
 ## Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and architecture
+- **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
 - **[Integration Guide](docs/INTEGRATION_GUIDE.md)** - Complete integration guide
 - **[Design Documentation](docs/design.md)** - Technical design
+- **[Implementation Status](docs/IMPLEMENTATION_STATUS.md)** - Current implementation status
+- **[Migration Guide](docs/A2A_MIGRATION_GUIDE.md)** - Migrating from A2A to sage-a2a-go
+- **[gRPC Transport Implementation](docs/A2A_TRANSPORT_IMPLEMENTATION_GUIDE.md)** - Future gRPC transport guide
 - **[API Reference](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)** - GoDoc
 
 ## Examples
