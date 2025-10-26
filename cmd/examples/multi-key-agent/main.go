@@ -151,8 +151,8 @@ func main() {
 	mockClient := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
 			agentDID: {
-				did.KeyTypeECDSA:    ecdsaPubKey,
-				did.KeyTypeEd25519:  ed25519PubKey,
+				did.KeyTypeECDSA:   ecdsaPubKey,
+				did.KeyTypeEd25519: ed25519PubKey,
 			},
 		},
 	}

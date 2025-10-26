@@ -320,18 +320,144 @@ go run ./cmd/examples/multi-key-agent/main.go
 
 ## Development
 
-### Building
+This project uses **Make** for build automation. Run `make help` to see all available commands.
+
+### Quick Start
+
 ```bash
-go build ./...
+# Display all available commands
+make help
+
+# Build the library
+make build
+
+# Run tests
+make test
+
+# Run tests with coverage report
+make test-coverage
+
+# Format code
+make fmt
+
+# Run linter
+make lint
+
+# Quick development cycle (fmt + vet + test)
+make dev
+```
+
+### Building
+
+```bash
+# Build library
+make build
+
+# Build example programs
+make build-examples
+
+# Install library locally
+make install
 ```
 
 ### Testing
+
 ```bash
-go test ./...
+# Run unit tests
+make test
+
+# Run tests with verbose output
+make test-verbose
+
+# Generate coverage report (HTML)
+make test-coverage
+
+# Run integration tests
+make test-integration
+
+# Run all tests (unit + integration)
+make test-all
+
+# Run benchmarks
+make bench
 ```
 
-### Coverage
+### Code Quality
+
 ```bash
+# Format code
+make fmt
+
+# Check formatting
+make fmt-check
+
+# Run go vet
+make vet
+
+# Run linter
+make lint
+
+# Auto-fix linter issues
+make lint-fix
+
+# Run all quality checks
+make check
+```
+
+### Dependencies
+
+```bash
+# Download dependencies
+make deps
+
+# Tidy go.mod and go.sum
+make tidy
+
+# Verify dependencies
+make verify
+
+# Update all dependencies
+make deps-update
+```
+
+### Cleanup
+
+```bash
+# Clean build artifacts and test cache
+make clean
+
+# Clean only build artifacts
+make clean-build
+
+# Clean coverage reports
+make clean-coverage
+```
+
+### CI/CD
+
+```bash
+# Run CI checks (format, vet, lint, test)
+make ci
+
+# Run full CI suite with coverage
+make ci-full
+
+# Run pre-commit checks
+make pre-commit
+```
+
+### Manual Commands
+
+If you prefer not to use Make:
+
+```bash
+# Build
+go build ./...
+
+# Test
+go test ./...
+
+# Coverage
 go test -cover -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```

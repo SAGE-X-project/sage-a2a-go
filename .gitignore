@@ -12,6 +12,8 @@
 *.out
 coverage.out
 coverage.html
+coverage/
+coverage_*.out
 
 # Dependency directories
 vendor/

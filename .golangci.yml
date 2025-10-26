@@ -1,0 +1,120 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Reports suspicious constructs
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Go static analysis
+    - unused        # Check for unused code
+    - gofmt         # Check code formatting
+    - goimports     # Check import order
+    - misspell      # Check for misspelled words
+    - revive        # Fast, configurable, extensible linter
+    - typecheck     # Type checking
+    - bodyclose     # Check HTTP response body is closed
+    - gosec         # Security checks
+    - goconst       # Find repeated strings that could be constants
+    - unconvert     # Remove unnecessary type conversions
+    - predeclared   # Find shadowing of predeclared identifiers
+    - exportloopref # Check for loop variable reference issues
+    - nilerr        # Find code that returns nil even if error is not nil
+
+  disable:
+    - exhaustive    # Too strict for switch statements
+    - funlen        # Function length can vary
+    - gocyclo       # Cyclomatic complexity can vary
+    - lll           # Line length varies
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - (io.Closer).Close
+
+  govet:
+    check-shadowing: true
+    enable-all: true
+
+  gofmt:
+    simplify: true
+
+  goimports:
+    local-prefixes: github.com/sage-x-project/sage-a2a-go
+
+  gosec:
+    excludes:
+      - G404 # Use of weak random number generator - OK for non-crypto use
+
+  revive:
+    confidence: 0.8
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: increment-decrement
+      - name: var-naming
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+
+  misspell:
+    locale: US
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - goconst
+
+    # Exclude test helper packages
+    - path: test/
+      linters:
+        - errcheck
+        - gosec
+
+    # Exclude example code
+    - path: cmd/examples/
+      linters:
+        - errcheck
+        - gosec
+        - goconst
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
