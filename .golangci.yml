@@ -1,7 +1,7 @@
-# golangci-lint configuration
+# golangci-lint configuration for v2.x
 # https://golangci-lint.run/usage/configuration/
 
-config-version: "2.0"
+version: 2
 
 run:
   timeout: 5m
@@ -10,77 +10,44 @@ run:
 
 linters:
   enable:
-    - errcheck      # Check for unchecked errors
-    - gosimple      # Simplify code
-    - govet         # Reports suspicious constructs
-    - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Go static analysis
-    - unused        # Check for unused code
-    - gofmt         # Check code formatting
-    - goimports     # Check import order
-    - misspell      # Check for misspelled words
-    - revive        # Fast, configurable, extensible linter
-    - typecheck     # Type checking
-    - bodyclose     # Check HTTP response body is closed
-    - gosec         # Security checks
-    - goconst       # Find repeated strings that could be constants
-    - unconvert     # Remove unnecessary type conversions
-    - predeclared   # Find shadowing of predeclared identifiers
-    - exportloopref # Check for loop variable reference issues
-    - nilerr        # Find code that returns nil even if error is not nil
+    # Default linters (already enabled)
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+    # Additional linters
+    - bodyclose
+    - gosec
+    - goconst
+    - misspell
+    - revive
+    - unconvert
+    - predeclared
+    - nilerr
 
   disable:
-    - exhaustive    # Too strict for switch statements
-    - funlen        # Function length can vary
-    - gocyclo       # Cyclomatic complexity can vary
-    - lll           # Line length varies
+    - exhaustive
+    - funlen
+    - gocyclo
+    - lll
 
 linters-settings:
   errcheck:
     check-type-assertions: true
     check-blank: true
-    exclude-functions:
-      - (io.Closer).Close
 
   govet:
-    check-shadowing: true
-    enable-all: true
-
-  gofmt:
-    simplify: true
-
-  goimports:
-    local-prefixes: github.com/sage-x-project/sage-a2a-go
+    enable:
+      - shadow
 
   gosec:
     excludes:
-      - G404 # Use of weak random number generator - OK for non-crypto use
+      - G404 # Weak random OK for non-crypto use
 
   revive:
     confidence: 0.8
-    rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: context-keys-type
-      - name: dot-imports
-      - name: error-return
-      - name: error-strings
-      - name: error-naming
-      - name: exported
-      - name: increment-decrement
-      - name: var-naming
-      - name: package-comments
-      - name: range
-      - name: receiver-naming
-      - name: time-naming
-      - name: unexported-return
-      - name: indent-error-flow
-      - name: errorf
-      - name: empty-block
-      - name: superfluous-else
-      - name: unused-parameter
-      - name: unreachable-code
-      - name: redefines-builtin-id
 
   misspell:
     locale: US
@@ -92,25 +59,29 @@ linters-settings:
 issues:
   exclude-use-default: false
   exclude-rules:
-    # Exclude some linters from running on tests files
+    # Exclude linters from test files
     - path: _test\.go
       linters:
         - gosec
         - errcheck
         - goconst
+        - unused
 
-    # Exclude test helper packages
+    # Exclude from test directory
     - path: test/
       linters:
         - errcheck
         - gosec
+        - unused
 
-    # Exclude example code
+    # Exclude from examples
     - path: cmd/examples/
       linters:
         - errcheck
         - gosec
         - goconst
+        - unused
+        - staticcheck
 
   max-issues-per-linter: 0
   max-same-issues: 0
