@@ -4,7 +4,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![A2A Protocol](https://img.shields.io/badge/A2A-v0.3.0-green)](https://a2a-protocol.org)
-[![SAGE Version](https://img.shields.io/badge/SAGE-v1.1.0-blue)](https://github.com/sage-x-project/sage)
+[![SAGE Version](https://img.shields.io/badge/SAGE-v1.3.1-blue)](https://github.com/sage-x-project/sage)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
 ## Overview
@@ -471,7 +471,7 @@ import "github.com/sage-x-project/sage-a2a-go"
 
 info := sagea2a.GetVersionInfo()
 // info.A2AProtocolVersion = "0.3.0"
-// info.SAGEVersion = "1.1.0"
+// info.SAGEVersion = "1.3.1"
 ```
 
 ### Updating a2a-go

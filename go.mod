@@ -4,7 +4,7 @@ go 1.24.4
 
 require (
 	github.com/a2aproject/a2a-go v0.1.0 // A2A Protocol Go SDK
-	github.com/sage-x-project/sage v1.1.0
+	github.com/sage-x-project/sage v1.3.1
 	github.com/stretchr/testify v1.11.1
 )
 

@@ -65,7 +65,7 @@
 
 **✅ Version Tracking** (`versions.go`)
 - A2A Protocol version (0.3.0)
-- SAGE version (1.1.0)
+- SAGE version (1.3.1)
 - GetVersionInfo() function
 
 **✅ Documentation**

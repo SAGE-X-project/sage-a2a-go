@@ -81,7 +81,7 @@ sage-a2a-go/versions.go:
         Version = "2.0.0-alpha"
         A2AProtocolVersion = "0.3.0"  // Current supported version
         MinA2AProtocolVersion = "0.2.6"  // Minimum compatible version
-        SAGEVersion = "1.1.0"
+        SAGEVersion = "1.3.1"
     )
 ```
 
@@ -90,7 +90,7 @@ sage-a2a-go/versions.go:
 go.mod:
     require (
         github.com/a2aproject/a2a-go v0.1.0
-        github.com/sage-x-project/sage v1.1.0
+        github.com/sage-x-project/sage v1.3.1
     )
 
     replace github.com/a2aproject/a2a-go => ../a2a-go  // Local development
@@ -540,5 +540,5 @@ When A2A introduces breaking changes:
 **Last Updated**: 2025-10-26
 **Project Version**: 2.0.0-alpha
 **A2A Protocol Version**: 0.3.0
-**SAGE Version**: 1.1.0
+**SAGE Version**: 1.3.1
 **a2a-go Version**: 0.1.0 (local development)

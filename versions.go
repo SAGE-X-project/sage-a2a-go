@@ -30,7 +30,7 @@ const (
 	MinA2AProtocolVersion = "0.2.6"
 
 	// SAGEVersion is the SAGE core version required
-	SAGEVersion = "1.1.0"
+	SAGEVersion = "1.3.1"
 )
 
 // VersionInfo contains detailed version information

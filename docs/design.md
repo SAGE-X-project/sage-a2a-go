@@ -3,7 +3,7 @@
 **Version**: 2.0
 **Date**: 2025-10-26
 **Status**: ✅ Implementation Complete (v2.0.0-alpha)
-**SAGE Version**: v1.1.0
+**SAGE Version**: v1.3.1
 **A2A Protocol**: v0.3.0 (JSON-RPC 2.0 over HTTP/S)
 **Test Coverage**: 91.8% (Target: ≥90% ✅)
 
@@ -88,7 +88,7 @@
 └─────────────────────┬───────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────┐
-│         DID Layer (SAGE Core v1.1.0)                │
+│         DID Layer (SAGE Core v1.3.1)                │
 │  - DID Registry (Blockchain)                        │
 │  - Multi-Key Resolution                             │
 │  - Crypto Operations                                │
