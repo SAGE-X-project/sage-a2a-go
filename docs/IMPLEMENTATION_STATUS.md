@@ -59,14 +59,16 @@
 ### 3. Infrastructure
 
 **✅ Dependency Management** (`go.mod`)
-- a2a-go as direct dependency
-- Local replacement for development (`replace ../a2a-go`)
+- SAGE-X fork of a2a-go with critical bug fixes
+- Replace directive for fork (`replace github.com/a2aproject/a2a-go => github.com/SAGE-X-project/a2a-go`)
 - All transitive dependencies resolved
 
-**✅ Version Tracking** (`versions.go`)
-- A2A Protocol version (0.4.0)
-- SAGE version (1.3.1)
-- GetVersionInfo() function
+**✅ Version Tracking** (`pkg/version/`)
+- Current version: 1.0.0-dev (targeting v1.0.0 release)
+- A2A Protocol version: 0.4.0
+- SAGE version: 1.3.1
+- A2A-go fork version tracking
+- version.Get() function for programmatic access
 
 **✅ Documentation**
 - README.md - Complete guide

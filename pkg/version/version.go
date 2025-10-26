@@ -15,12 +15,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with sage-a2a-go.  If not, see <https://www.gnu.org/licenses/>.
 
-// Package sagea2a provides version information for sage-a2a-go and its dependencies.
-package sagea2a
+// Package version provides version information for sage-a2a-go and its dependencies.
+package version
 
 const (
 	// Version is the current version of sage-a2a-go
-	Version = "2.0.0-alpha"
+	// This will be released as v1.0.0 when finalized
+	Version = "1.0.0-dev"
 
 	// A2AProtocolVersion is the A2A Protocol specification version this library supports
 	// See: https://github.com/a2aproject/A2A
@@ -31,22 +32,28 @@ const (
 
 	// SAGEVersion is the SAGE core version required
 	SAGEVersion = "1.3.1"
+
+	// A2AGoForkVersion is the SAGE-X fork version of a2a-go being used
+	// This fork includes critical bug fixes for Message Parts marshaling
+	A2AGoForkVersion = "v0.0.0-20251026124015-70634d9eddae"
 )
 
-// VersionInfo contains detailed version information
-type VersionInfo struct {
+// Info contains detailed version information
+type Info struct {
 	SageA2AVersion        string
 	A2AProtocolVersion    string
 	MinA2AProtocolVersion string
 	SAGEVersion           string
+	A2AGoForkVersion      string
 }
 
-// GetVersionInfo returns detailed version information
-func GetVersionInfo() VersionInfo {
-	return VersionInfo{
+// Get returns detailed version information
+func Get() Info {
+	return Info{
 		SageA2AVersion:        Version,
 		A2AProtocolVersion:    A2AProtocolVersion,
 		MinA2AProtocolVersion: MinA2AProtocolVersion,
 		SAGEVersion:           SAGEVersion,
+		A2AGoForkVersion:      A2AGoForkVersion,
 	}
 }

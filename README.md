@@ -600,11 +600,13 @@ go tool cover -html=coverage.out
 sage-a2a-go tracks versions of its dependencies:
 
 ```go
-import "github.com/sage-x-project/sage-a2a-go"
+import "github.com/sage-x-project/sage-a2a-go/pkg/version"
 
-info := sagea2a.GetVersionInfo()
+info := version.Get()
+// info.SageA2AVersion = "1.0.0-dev"
 // info.A2AProtocolVersion = "0.4.0"
 // info.SAGEVersion = "1.3.1"
+// info.A2AGoForkVersion = "v0.0.0-20251026124015-70634d9eddae"
 ```
 
 ### Updating Dependencies
