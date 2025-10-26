@@ -22,8 +22,10 @@ This guide walks you through integrating sage-a2a-go into your AI agent project.
 ### Required Dependencies
 
 - **Go 1.23+**: Modern Go version with generics support
-- **SAGE v1.1.0**: Blockchain-anchored DID system
+- **SAGE v1.3.1+**: Blockchain-anchored DID system
 - **Ethereum Node**: For DID resolution (Infura, Alchemy, or self-hosted)
+
+> **Note**: sage-a2a-go uses [SAGE-X-project/a2a-go](https://github.com/SAGE-X-project/a2a-go) fork with critical bug fixes. This is automatically configured via the `replace` directive in `go.mod`.
 
 ### Optional Dependencies
 
@@ -47,17 +49,29 @@ This guide walks you through integrating sage-a2a-go into your AI agent project.
 go get github.com/sage-x-project/sage-a2a-go
 ```
 
-### Step 2: Install SAGE Core
+This automatically brings in:
+- SAGE v1.3.1 (DID infrastructure)
+- SAGE-X-project/a2a-go fork (with bug fixes)
+- All required dependencies
 
-```bash
-go get github.com/sage-x-project/sage@v1.1.0
-```
-
-### Step 3: Verify Installation
+### Step 2: Verify Installation
 
 ```bash
 go list -m github.com/sage-x-project/sage-a2a-go
 go list -m github.com/sage-x-project/sage
+go list -m github.com/SAGE-X-project/a2a-go  # Fork version
+```
+
+### Step 3: Check Version Information
+
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/version"
+
+info := version.Get()
+fmt.Printf("sage-a2a-go: %s\n", info.SageA2AVersion)
+fmt.Printf("A2A Protocol: %s\n", info.A2AProtocolVersion)
+fmt.Printf("SAGE: %s\n", info.SAGEVersion)
+fmt.Printf("a2a-go fork: %s\n", info.A2AGoForkVersion)
 ```
 
 ---

@@ -24,8 +24,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage-a2a-go/pkg/verifier"
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 type contextKey string

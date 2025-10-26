@@ -263,8 +263,8 @@ func TestDefaultKeySelector_SelectKey_MultipleKeys(t *testing.T) {
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
 			testDID: {
-				did.KeyTypeECDSA:    ecdsaPubKey,
-				did.KeyTypeEd25519:  ed25519PubKey,
+				did.KeyTypeECDSA:   ecdsaPubKey,
+				did.KeyTypeEd25519: ed25519PubKey,
 			},
 		},
 	}

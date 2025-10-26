@@ -36,16 +36,16 @@ type SignatureVerifier interface {
 
 // DefaultDIDVerifier implements DIDVerifier using SAGE DID resolution
 type DefaultDIDVerifier struct {
-	client           EthereumClient
-	selector         KeySelector
+	client            EthereumClient
+	selector          KeySelector
 	signatureVerifier SignatureVerifier
 }
 
 // NewDefaultDIDVerifier creates a new DefaultDIDVerifier
 func NewDefaultDIDVerifier(client EthereumClient, selector KeySelector, signatureVerifier SignatureVerifier) *DefaultDIDVerifier {
 	return &DefaultDIDVerifier{
-		client:           client,
-		selector:         selector,
+		client:            client,
+		selector:          selector,
 		signatureVerifier: signatureVerifier,
 	}
 }

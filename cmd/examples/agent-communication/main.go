@@ -112,7 +112,7 @@ func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDI
 
 // This example demonstrates agent-to-agent communication with DID-based authentication
 func main() {
-	fmt.Println("=== Agent-to-Agent Communication Example ===\n")
+	fmt.Println("=== Agent-to-Agent Communication Example ===")
 
 	ctx := context.Background()
 
@@ -164,7 +164,7 @@ func main() {
 		},
 	}
 
-	fmt.Println("  ✓ Mock blockchain configured with agent public keys\n")
+	fmt.Println("  ✓ Mock blockchain configured with agent public keys")
 
 	// Step 4: Agent A creates and signs a task request
 	fmt.Println("Step 4: Agent A creating a task request...")

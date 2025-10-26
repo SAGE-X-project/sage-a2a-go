@@ -25,9 +25,11 @@ import (
 	"io"
 	"iter"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2aclient"
+	"github.com/sage-x-project/sage-a2a-go/pkg/protocol"
 	"github.com/sage-x-project/sage-a2a-go/pkg/signer"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
@@ -47,6 +49,7 @@ type DIDHTTPTransport struct {
 	keyPair    crypto.KeyPair
 	signer     signer.A2ASigner
 	httpClient *http.Client
+	requestID  uint64 // atomic counter for JSON-RPC request IDs
 }
 
 // NewDIDHTTPTransport creates a new DID-authenticated HTTP transport.
@@ -104,12 +107,12 @@ type jsonRPCError struct {
 
 // call makes a JSON-RPC 2.0 call with DID signature and returns the raw result
 func (t *DIDHTTPTransport) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
-	// Create JSON-RPC request
+	// Create JSON-RPC request with unique ID
 	rpcReq := jsonRPCRequest{
 		JSONRPC: "2.0",
 		Method:  method,
 		Params:  params,
-		ID:      1, // TODO: use atomic counter for ID
+		ID:      int(atomic.AddUint64(&t.requestID, 1)),
 	}
 
 	// Marshal request body
@@ -235,21 +238,13 @@ func (t *DIDHTTPTransport) SendMessage(ctx context.Context, message *a2a.Message
 // ResubscribeToTask implements the 'tasks/resubscribe' protocol method.
 // Note: HTTP transport uses Server-Sent Events (SSE) for streaming.
 func (t *DIDHTTPTransport) ResubscribeToTask(ctx context.Context, id *a2a.TaskIDParams) iter.Seq2[a2a.Event, error] {
-	return func(yield func(a2a.Event, error) bool) {
-		// TODO: Implement SSE streaming for HTTP transport
-		// For now, return error
-		yield(nil, fmt.Errorf("ResubscribeToTask: SSE streaming not implemented yet"))
-	}
+	return t.callSSE(ctx, "tasks/resubscribe", id)
 }
 
 // SendStreamingMessage implements the 'message/stream' protocol method (streaming).
 // Note: HTTP transport uses Server-Sent Events (SSE) for streaming.
 func (t *DIDHTTPTransport) SendStreamingMessage(ctx context.Context, message *a2a.MessageSendParams) iter.Seq2[a2a.Event, error] {
-	return func(yield func(a2a.Event, error) bool) {
-		// TODO: Implement SSE streaming for HTTP transport
-		// For now, return error
-		yield(nil, fmt.Errorf("SendStreamingMessage: SSE streaming not implemented yet"))
-	}
+	return t.callSSE(ctx, "message/stream", message)
 }
 
 // GetTaskPushConfig implements the 'tasks/pushNotificationConfig/get' protocol method.
@@ -302,6 +297,33 @@ func (t *DIDHTTPTransport) DeleteTaskPushConfig(ctx context.Context, params *a2a
 	_, err := t.call(ctx, "tasks/pushNotificationConfig/delete", params)
 	return err
 }
+
+// ========================================
+// A2A Protocol v0.4.0 Extension Methods
+// ========================================
+
+// ListTasks implements the 'tasks/list' protocol method.
+// This method was introduced in A2A Protocol v0.4.0.
+//
+// Note: This is an extension method not yet present in a2aclient.Transport interface.
+// It will be integrated into the standard interface once a2a-go supports v0.4.0.
+func (t *DIDHTTPTransport) ListTasks(ctx context.Context, params *protocol.ListTasksParams) (*protocol.ListTasksResult, error) {
+	result, err := t.call(ctx, "tasks/list", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var listResult protocol.ListTasksResult
+	if err := json.Unmarshal(result, &listResult); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal ListTasksResult: %w", err)
+	}
+
+	return &listResult, nil
+}
+
+// ========================================
+// Agent Card Retrieval
+// ========================================
 
 // GetAgentCard implements agent card retrieval.
 // For HTTP transport, this fetches from the well-known URL.

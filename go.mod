@@ -3,8 +3,8 @@ module github.com/sage-x-project/sage-a2a-go
 go 1.24.4
 
 require (
-	github.com/a2aproject/a2a-go v0.1.0 // A2A Protocol Go SDK
-	github.com/sage-x-project/sage v1.1.0
+	github.com/a2aproject/a2a-go v0.0.0-20251023091533-c732060cb007 // A2A Protocol Go SDK
+	github.com/sage-x-project/sage v1.3.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -29,5 +29,5 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-// Use local a2a-go for development
-replace github.com/a2aproject/a2a-go => ../a2a-go
+// Use SAGE-X fork with bug fixes
+replace github.com/a2aproject/a2a-go => github.com/SAGE-X-project/a2a-go v0.0.0-20251026124015-70634d9eddae
