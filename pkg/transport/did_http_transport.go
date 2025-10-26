@@ -28,6 +28,7 @@ import (
 
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2aclient"
+	"github.com/sage-x-project/sage-a2a-go/pkg/protocol"
 	"github.com/sage-x-project/sage-a2a-go/pkg/signer"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
@@ -302,6 +303,33 @@ func (t *DIDHTTPTransport) DeleteTaskPushConfig(ctx context.Context, params *a2a
 	_, err := t.call(ctx, "tasks/pushNotificationConfig/delete", params)
 	return err
 }
+
+// ========================================
+// A2A Protocol v0.4.0 Extension Methods
+// ========================================
+
+// ListTasks implements the 'tasks/list' protocol method.
+// This method was introduced in A2A Protocol v0.4.0.
+//
+// Note: This is an extension method not yet present in a2aclient.Transport interface.
+// It will be integrated into the standard interface once a2a-go supports v0.4.0.
+func (t *DIDHTTPTransport) ListTasks(ctx context.Context, params *protocol.ListTasksParams) (*protocol.ListTasksResult, error) {
+	result, err := t.call(ctx, "tasks/list", params)
+	if err != nil {
+		return nil, err
+	}
+
+	var listResult protocol.ListTasksResult
+	if err := json.Unmarshal(result, &listResult); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal ListTasksResult: %w", err)
+	}
+
+	return &listResult, nil
+}
+
+// ========================================
+// Agent Card Retrieval
+// ========================================
 
 // GetAgentCard implements agent card retrieval.
 // For HTTP transport, this fetches from the well-known URL.

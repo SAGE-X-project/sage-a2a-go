@@ -489,12 +489,13 @@ go test ./...
 - ✅ HTTP/JSON-RPC 2.0 transport
 - ✅ DID signatures (RFC 9421)
 - ✅ A2A v0.4.0 protocol support
-- ✅ Core methods implemented (except streaming and ListTasks)
+- ✅ ListTasks method with pagination
+- ✅ Core methods implemented (except streaming)
 
 ### Next (v2.1.0)
 - [ ] Server-Sent Events (SSE) for streaming
-- [ ] ListTasks method implementation
 - [ ] Performance optimizations
+- [ ] Additional integration tests
 
 ### Future (v3.0.0)
 - [ ] WebSocket transport

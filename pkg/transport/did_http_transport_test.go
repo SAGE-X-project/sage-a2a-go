@@ -26,6 +26,7 @@ import (
 	"testing"
 
 	"github.com/a2aproject/a2a-go/a2a"
+	"github.com/sage-x-project/sage-a2a-go/pkg/protocol"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
@@ -515,6 +516,146 @@ func TestDIDHTTPTransport_SendStreamingMessage_NotImplemented(t *testing.T) {
 		assert.Contains(t, err.Error(), "SSE streaming not implemented yet")
 		break
 	}
+}
+
+// ========================================
+// A2A Protocol v0.4.0 Tests
+// ========================================
+
+func TestDIDHTTPTransport_ListTasks(t *testing.T) {
+	// Create expected tasks
+	expectedTasks := []*a2a.Task{
+		{
+			ID:        "task-123",
+			ContextID: "context-abc",
+			Status: a2a.TaskStatus{
+				State: a2a.TaskStateWorking,
+			},
+		},
+		{
+			ID:        "task-456",
+			ContextID: "context-abc",
+			Status: a2a.TaskStatus{
+				State: a2a.TaskStateCompleted,
+			},
+		},
+	}
+
+	expectedResult := &protocol.ListTasksResult{
+		Tasks:         expectedTasks,
+		TotalSize:     2,
+		PageSize:      10,
+		NextPageToken: "",
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		var req jsonRPCRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		require.NoError(t, err)
+		assert.Equal(t, "tasks/list", req.Method)
+
+		// Verify params structure
+		if req.Params != nil {
+			params, ok := req.Params.(map[string]interface{})
+			require.True(t, ok)
+			t.Logf("Received params: %+v", params)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(mockJSONRPCResponse(expectedResult))
+	}
+
+	transport, server := setupTestTransport(t, handler)
+	defer server.Close()
+
+	ctx := context.Background()
+	params := &protocol.ListTasksParams{
+		ContextID:     "context-abc",
+		Status:        a2a.TaskStateWorking,
+		PageSize:      10,
+		HistoryLength: 5,
+	}
+
+	result, err := transport.ListTasks(ctx, params)
+
+	require.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Len(t, result.Tasks, 2)
+	assert.Equal(t, expectedTasks[0].ID, result.Tasks[0].ID)
+	assert.Equal(t, expectedTasks[1].ID, result.Tasks[1].ID)
+	assert.Equal(t, 2, result.TotalSize)
+	assert.Equal(t, 10, result.PageSize)
+	assert.Equal(t, "", result.NextPageToken)
+}
+
+func TestDIDHTTPTransport_ListTasks_WithPagination(t *testing.T) {
+	expectedResult := &protocol.ListTasksResult{
+		Tasks: []*a2a.Task{
+			{
+				ID:        "task-1",
+				ContextID: "ctx-1",
+				Status:    a2a.TaskStatus{State: a2a.TaskStateWorking},
+			},
+		},
+		TotalSize:     100,
+		PageSize:      1,
+		NextPageToken: "token-abc123",
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		var req jsonRPCRequest
+		err := json.NewDecoder(r.Body).Decode(&req)
+		require.NoError(t, err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(mockJSONRPCResponse(expectedResult))
+	}
+
+	transport, server := setupTestTransport(t, handler)
+	defer server.Close()
+
+	ctx := context.Background()
+	params := &protocol.ListTasksParams{
+		PageSize:  1,
+		PageToken: "prev-token",
+	}
+
+	result, err := transport.ListTasks(ctx, params)
+
+	require.NoError(t, err)
+	assert.Equal(t, "token-abc123", result.NextPageToken)
+	assert.Equal(t, 100, result.TotalSize)
+}
+
+func TestDIDHTTPTransport_ListTasks_EmptyResult(t *testing.T) {
+	expectedResult := &protocol.ListTasksResult{
+		Tasks:         []*a2a.Task{},
+		TotalSize:     0,
+		PageSize:      50,
+		NextPageToken: "",
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(mockJSONRPCResponse(expectedResult))
+	}
+
+	transport, server := setupTestTransport(t, handler)
+	defer server.Close()
+
+	ctx := context.Background()
+	params := &protocol.ListTasksParams{
+		ContextID: "non-existent",
+	}
+
+	result, err := transport.ListTasks(ctx, params)
+
+	require.NoError(t, err)
+	assert.Empty(t, result.Tasks)
+	assert.Equal(t, 0, result.TotalSize)
 }
 
 func ExampleNewDIDHTTPTransport() {

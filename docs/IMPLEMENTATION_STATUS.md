@@ -153,13 +153,14 @@ versions.go                              ~50 lines
 - **Priority**: High (needed for full A2A support)
 
 ### 2. A2A v0.4.0 Features
-- [ ] ListTasks method (tasks/list)
+- [x] **ListTasks method (tasks/list)** - ✅ Implemented!
   - Retrieve and filter tasks with pagination
   - Cursor-based pagination (pageToken/nextPageToken)
   - Filter by contextId, status, lastUpdatedAfter
   - Support pageSize (1-100), historyLength, includeArtifacts
-- **Reason**: Not implemented yet
-- **Priority**: Medium (planned for v2.1.0)
+  - Comprehensive tests (3 test cases)
+- **Status**: ✅ Complete
+- **Location**: `pkg/protocol/a2a_v040.go`, `pkg/transport/did_http_transport.go`
 
 ### 3. Server Components
 - [ ] DID-authenticated server handler
