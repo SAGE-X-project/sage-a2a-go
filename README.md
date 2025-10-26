@@ -402,14 +402,11 @@ go test ./test/e2e/... -v
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 
 ### 🏗️ Architecture & Design
-- **[Architecture](docs/ARCHITECTURE.md)** - System design and architecture
-- **[Design Documentation](docs/design.md)** - Technical design details
-- **[Implementation Status](docs/IMPLEMENTATION_STATUS.md)** - Current implementation status
+- **[Architecture & Design](docs/ARCHITECTURE.md)** - Comprehensive system architecture, design principles, and implementation details
+- **[GoDoc](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)** - Generated API documentation
 
-### 🔄 Migration & Advanced
-- **[Migration Guide](docs/A2A_MIGRATION_GUIDE.md)** - Migrating from A2A to sage-a2a-go
+### 📋 Project Information
 - **[Changelog](CHANGELOG.md)** - Version history and upgrade guide
-- **[GoDoc](https://pkg.go.dev/github.com/sage-x-project/sage-a2a-go)** - Generated API docs
 
 ## Examples
 
