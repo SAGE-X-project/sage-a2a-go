@@ -25,6 +25,7 @@ import (
 	"io"
 	"iter"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2aclient"
@@ -48,6 +49,7 @@ type DIDHTTPTransport struct {
 	keyPair    crypto.KeyPair
 	signer     signer.A2ASigner
 	httpClient *http.Client
+	requestID  uint64 // atomic counter for JSON-RPC request IDs
 }
 
 // NewDIDHTTPTransport creates a new DID-authenticated HTTP transport.
@@ -105,12 +107,12 @@ type jsonRPCError struct {
 
 // call makes a JSON-RPC 2.0 call with DID signature and returns the raw result
 func (t *DIDHTTPTransport) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
-	// Create JSON-RPC request
+	// Create JSON-RPC request with unique ID
 	rpcReq := jsonRPCRequest{
 		JSONRPC: "2.0",
 		Method:  method,
 		Params:  params,
-		ID:      1, // TODO: use atomic counter for ID
+		ID:      int(atomic.AddUint64(&t.requestID, 1)),
 	}
 
 	// Marshal request body

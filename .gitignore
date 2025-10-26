@@ -86,3 +86,6 @@ logs/
 # Documentation builds
 docs/_build/
 site/
+
+# Claude Code
+.claude/

@@ -313,17 +313,38 @@ DIDs stored on:
 
 Complete examples in [`cmd/examples/`](cmd/examples/):
 
-### 1. Simple Agent
+### 1. Simple Client ([README](cmd/examples/simple-client/))
+Basic DID-authenticated A2A client.
+```bash
+go run ./cmd/examples/simple-client/main.go
+```
+
+### 2. Simple Agent ([README](cmd/examples/simple-agent/))
+Create an agent with DID authentication.
 ```bash
 go run ./cmd/examples/simple-agent/main.go
 ```
 
-### 2. Agent Communication
+### 3. Chat Demo ([README](cmd/examples/chat-demo/))
+Interactive chat application with SSE streaming.
+```bash
+go run ./cmd/examples/chat-demo/main.go
+```
+
+### 4. SSE Streaming ([README](cmd/examples/sse-streaming/))
+Real-time message streaming with Server-Sent Events.
+```bash
+go run ./cmd/examples/sse-streaming/main.go
+```
+
+### 5. Agent Communication ([README](cmd/examples/agent-communication/))
+Agent-to-agent communication example.
 ```bash
 go run ./cmd/examples/agent-communication/main.go
 ```
 
-### 3. Multi-Key Agent
+### 6. Multi-Key Agent ([README](cmd/examples/multi-key-agent/))
+Multi-protocol key management.
 ```bash
 go run ./cmd/examples/multi-key-agent/main.go
 ```
