@@ -12,6 +12,12 @@
 *.out
 coverage.out
 coverage.html
+coverage/
+coverage_*.out
+final_coverage.out
+
+# Test output files
+test_output.txt
 
 # Dependency directories
 vendor/
@@ -80,3 +86,6 @@ logs/
 # Documentation builds
 docs/_build/
 site/
+
+# Claude Code
+.claude/

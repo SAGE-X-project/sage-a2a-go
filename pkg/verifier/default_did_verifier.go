@@ -1,3 +1,20 @@
+// Copyright (C) 2025 SAGE-X Project
+//
+// This file is part of sage-a2a-go.
+//
+// sage-a2a-go is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// sage-a2a-go is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with sage-a2a-go.  If not, see <https://www.gnu.org/licenses/>.
+
 package verifier
 
 import (
@@ -19,16 +36,16 @@ type SignatureVerifier interface {
 
 // DefaultDIDVerifier implements DIDVerifier using SAGE DID resolution
 type DefaultDIDVerifier struct {
-	client           EthereumClient
-	selector         KeySelector
+	client            EthereumClient
+	selector          KeySelector
 	signatureVerifier SignatureVerifier
 }
 
 // NewDefaultDIDVerifier creates a new DefaultDIDVerifier
 func NewDefaultDIDVerifier(client EthereumClient, selector KeySelector, signatureVerifier SignatureVerifier) *DefaultDIDVerifier {
 	return &DefaultDIDVerifier{
-		client:           client,
-		selector:         selector,
+		client:            client,
+		selector:          selector,
 		signatureVerifier: signatureVerifier,
 	}
 }
