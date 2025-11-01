@@ -18,17 +18,18 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"encoding/json"
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"net/http/httptest"
+    "bytes"
+    "context"
+    "crypto/ecdsa"
+    "crypto/elliptic"
+    "crypto/rand"
+    "encoding/json"
+    "fmt"
+    "io"
+    "log"
+    "net/http"
+    "net/http/httptest"
+    "time"
 
 	stdcrypto "crypto"
 
@@ -95,7 +96,7 @@ func min(a, b int) int {
 
 // mockEthereumClient simulates blockchain DID resolution
 type mockEthereumClient struct {
-	publicKeys map[did.AgentDID]*ecdsa.PublicKey
+    publicKeys map[did.AgentDID]*ecdsa.PublicKey
 }
 
 func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID did.AgentDID) ([]did.AgentKey, error) {
@@ -104,10 +105,27 @@ func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID 
 }
 
 func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDID did.AgentDID, keyType did.KeyType) (interface{}, error) {
-	if pubKey, found := m.publicKeys[agentDID]; found {
-		return pubKey, nil
-	}
-	return nil, fmt.Errorf("DID not found: %s", agentDID)
+    if pubKey, found := m.publicKeys[agentDID]; found {
+        return pubKey, nil
+    }
+    return nil, fmt.Errorf("DID not found: %s", agentDID)
+}
+
+// Satisfy DIDResolver used by DefaultKeySelector
+func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
+    d := did.AgentDID(didStr)
+    meta := &did.AgentMetadataV4{DID: d, IsActive: true}
+    if pk, ok := m.publicKeys[d]; ok {
+        if keyData, err := did.MarshalPublicKey(pk); err == nil {
+            meta.Keys = append(meta.Keys, did.AgentKey{
+                Type:      did.KeyTypeECDSA,
+                KeyData:   keyData,
+                Verified:  true,
+                CreatedAt: time.Now(),
+            })
+        }
+    }
+    return meta, nil
 }
 
 // This example demonstrates agent-to-agent communication with DID-based authentication

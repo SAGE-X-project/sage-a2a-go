@@ -35,7 +35,7 @@ import (
 
 // mockEthereumClient simulates blockchain with multi-key support
 type mockEthereumClient struct {
-	publicKeys map[did.AgentDID]map[did.KeyType]interface{}
+    publicKeys map[did.AgentDID]map[did.KeyType]interface{}
 }
 
 func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID did.AgentDID) ([]did.AgentKey, error) {
@@ -55,12 +55,31 @@ func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID 
 }
 
 func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDID did.AgentDID, keyType did.KeyType) (interface{}, error) {
-	if keyMap, found := m.publicKeys[agentDID]; found {
-		if pubKey, found := keyMap[keyType]; found {
-			return pubKey, nil
-		}
-	}
-	return nil, fmt.Errorf("key type %s not found for DID %s", keyType, agentDID)
+    if keyMap, found := m.publicKeys[agentDID]; found {
+        if pubKey, found := keyMap[keyType]; found {
+            return pubKey, nil
+        }
+    }
+    return nil, fmt.Errorf("key type %s not found for DID %s", keyType, agentDID)
+}
+
+// Satisfy DIDResolver for key selection
+func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
+    d := did.AgentDID(didStr)
+    meta := &did.AgentMetadataV4{DID: d, IsActive: true}
+    if keyMap, ok := m.publicKeys[d]; ok {
+        for kt, pk := range keyMap {
+            if keyData, err := did.MarshalPublicKey(pk); err == nil {
+                meta.Keys = append(meta.Keys, did.AgentKey{
+                    Type:      kt,
+                    KeyData:   keyData,
+                    Verified:  true,
+                    CreatedAt: time.Now(),
+                })
+            }
+        }
+    }
+    return meta, nil
 }
 
 // This example demonstrates managing an agent with multiple cryptographic keys

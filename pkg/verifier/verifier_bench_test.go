@@ -32,7 +32,7 @@ import (
 
 // mockEthereumClientBench for benchmarking
 type mockEthereumClientBench struct {
-	publicKeys map[did.AgentDID]map[did.KeyType]interface{}
+    publicKeys map[did.AgentDID]map[did.KeyType]interface{}
 }
 
 func (m *mockEthereumClientBench) ResolveAllPublicKeys(ctx context.Context, agentDID did.AgentDID) ([]did.AgentKey, error) {
@@ -52,12 +52,47 @@ func (m *mockEthereumClientBench) ResolveAllPublicKeys(ctx context.Context, agen
 }
 
 func (m *mockEthereumClientBench) ResolvePublicKeyByType(ctx context.Context, agentDID did.AgentDID, keyType did.KeyType) (interface{}, error) {
-	if keyMap, found := m.publicKeys[agentDID]; found {
-		if pubKey, found := keyMap[keyType]; found {
-			return pubKey, nil
-		}
-	}
-	return nil, fmt.Errorf("key not found")
+    if keyMap, found := m.publicKeys[agentDID]; found {
+        if pubKey, found := keyMap[keyType]; found {
+            return pubKey, nil
+        }
+    }
+    return nil, fmt.Errorf("key not found")
+}
+
+// Implement DIDResolver for selector
+func (m *mockEthereumClientBench) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
+    d := did.AgentDID(didStr)
+    meta := &did.AgentMetadataV4{DID: d, IsActive: true}
+    if keyMap, ok := m.publicKeys[d]; ok {
+        for kt, pk := range keyMap {
+            keyData, _ := did.MarshalPublicKey(pk)
+            meta.Keys = append(meta.Keys, did.AgentKey{
+                Type:      kt,
+                KeyData:   keyData,
+                Verified:  true,
+                CreatedAt: time.Now(),
+            })
+        }
+    }
+    return meta, nil
+}
+
+// Satisfy PublicKeyClient for DefaultDIDVerifier
+func (m *mockEthereumClientBench) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+    if km, ok := m.publicKeys[agentDID]; ok {
+        if pk, ok2 := km[did.KeyTypeECDSA]; ok2 {
+            return pk, nil
+        }
+        for _, v := range km {
+            return v, nil
+        }
+    }
+    return nil, fmt.Errorf("not found")
+}
+
+func (m *mockEthereumClientBench) ResolveKEMKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+    return make([]byte, 32), nil
 }
 
 // Benchmark key selection for Ethereum

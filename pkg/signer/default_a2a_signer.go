@@ -1,6 +1,7 @@
 // Copyright (C) 2025 SAGE-X Project
 //
 // This file is part of sage-a2a-go.
+// Licensed under the LGPL v3 or later: https://www.gnu.org/licenses/
 //
 // sage-a2a-go is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -18,177 +19,154 @@
 package signer
 
 import (
+	"bytes"
 	"context"
+	gocrypto "crypto"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
-// DefaultA2ASigner implements A2ASigner with RFC9421 HTTP Message Signatures
+// DefaultA2ASigner implements RFC9421-style HTTP Message Signatures.
 type DefaultA2ASigner struct{}
 
-// NewDefaultA2ASigner creates a new DefaultA2ASigner
-func NewDefaultA2ASigner() *DefaultA2ASigner {
-	return &DefaultA2ASigner{}
-}
+// NewDefaultA2ASigner creates a new signer.
+func NewDefaultA2ASigner() *DefaultA2ASigner { return &DefaultA2ASigner{} }
 
-// SignRequest signs an HTTP request with the agent's key using default options
-func (s *DefaultA2ASigner) SignRequest(ctx context.Context, req *http.Request, agentDID did.AgentDID, keyPair crypto.KeyPair) error {
-	// Use default signing options
+// SignRequest signs an HTTP request with default options.
+// Default components: ["@method", "@path", "@query", "content-digest"]
+func (s *DefaultA2ASigner) SignRequest(ctx context.Context, req *http.Request, agentDID did.AgentDID, keyPair sagecrypto.KeyPair) error {
 	opts := &SigningOptions{
-		Components: []string{"@method", "@target-uri"},
-		Created:    0, // Will use current time
+		Components: []string{"@method", "@path", "@query", "content-digest"},
+		Created:    0, // now
 	}
-
 	return s.SignRequestWithOptions(ctx, req, agentDID, keyPair, opts)
 }
 
-// SignRequestWithOptions signs an HTTP request with custom options
-func (s *DefaultA2ASigner) SignRequestWithOptions(ctx context.Context, req *http.Request, agentDID did.AgentDID, keyPair crypto.KeyPair, opts *SigningOptions) error {
-	// Check context
+// SignRequestWithOptions signs an HTTP request with custom options,
+// delegating the actual signing to rfc9421.HTTPVerifier.
+func (s *DefaultA2ASigner) SignRequestWithOptions(
+	ctx context.Context,
+	req *http.Request,
+	agentDID did.AgentDID,
+	keyPair sagecrypto.KeyPair,
+	opts *SigningOptions,
+) error {
 	if err := ctx.Err(); err != nil {
 		return fmt.Errorf("context error: %w", err)
 	}
-
-	// Validate inputs
 	if req == nil {
 		return fmt.Errorf("request cannot be nil")
 	}
-
 	if keyPair == nil {
 		return fmt.Errorf("key pair cannot be nil")
 	}
-
-	if agentDID == "" {
+	if strings.TrimSpace(string(agentDID)) == "" {
 		return fmt.Errorf("DID cannot be empty")
 	}
+	if opts == nil || len(opts.Components) == 0 {
+		opts = &SigningOptions{Components: []string{"@method", "@path", "@query", "content-digest"}}
+	}
 
-	// Use default options if nil
-	if opts == nil {
-		opts = &SigningOptions{
-			Components: []string{"@method", "@target-uri"},
+	if !includes(opts.Components, "content-digest") {
+		opts.Components = append(opts.Components, "content-digest")
+	}
+	if strings.TrimSpace(req.Header.Get("Content-Digest")) == "" {
+		if err := ensureContentDigestHeader(req); err != nil {
+			return fmt.Errorf("compute content-digest: %w", err)
 		}
 	}
 
-	// Set created timestamp if not provided
 	created := opts.Created
 	if created == 0 {
 		created = time.Now().Unix()
 	}
-
-	// Build signature base
-	signatureBase, err := s.buildSignatureBase(req, opts.Components)
-	if err != nil {
-		return fmt.Errorf("failed to build signature base: %w", err)
+	alg := s.getAlgorithm(keyPair.Type())
+	if opts.Algorithm != "" {
+		alg = opts.Algorithm
 	}
 
-	// Sign the signature base
-	signature, err := keyPair.Sign([]byte(signatureBase))
-	if err != nil {
-		return fmt.Errorf("failed to sign: %w", err)
+	params := &rfc9421.SignatureInputParams{
+		CoveredComponents: quoteComponents(opts.Components),
+		KeyID:             string(agentDID),
+		Algorithm:         alg,
+		Created:           created,
+		Expires:           opts.Expires,
+		Nonce:             opts.Nonce,
 	}
 
-	// Determine algorithm from key type
-	algorithm := s.getAlgorithm(keyPair.Type())
+	// 표준 crypto.Signer 확보
+	priv := keyPair.PrivateKey()
+	signer, ok := priv.(gocrypto.Signer)
+	if !ok {
+		return fmt.Errorf("private key does not implement crypto.Signer: %T", priv)
+	}
 
-	// Build Signature-Input header
-	signatureInput := s.buildSignatureInput(opts.Components, agentDID, algorithm, created, opts.Expires, opts.Nonce)
-
-	// Build Signature header
-	signatureHeader := s.buildSignatureHeader(signature)
-
-	// Set headers
-	req.Header.Set("Signature-Input", signatureInput)
-	req.Header.Set("Signature", signatureHeader)
+	// RFC 9421 sign "sig1"
+	httpv := rfc9421.NewHTTPVerifier()
+	if err := httpv.SignRequest(req, "sig1", params, signer); err != nil {
+		return fmt.Errorf("rfc9421 signing failed: %w", err)
+	}
 
 	return nil
 }
 
-// buildSignatureBase creates the signature base string according to RFC9421
-func (s *DefaultA2ASigner) buildSignatureBase(req *http.Request, components []string) (string, error) {
-	var lines []string
-
-	for _, component := range components {
-		var line string
-
-		switch component {
-		case "@method":
-			line = fmt.Sprintf(`"%s": %s`, component, req.Method)
-		case "@target-uri":
-			targetURI := req.URL.String()
-			if targetURI == "" {
-				targetURI = req.RequestURI
-			}
-			line = fmt.Sprintf(`"%s": %s`, component, targetURI)
-		case "@authority":
-			line = fmt.Sprintf(`"%s": %s`, component, req.Host)
-		default:
-			// Header component
-			headerValue := req.Header.Get(component)
-			if headerValue == "" {
-				// Skip missing headers
-				continue
-			}
-			line = fmt.Sprintf(`"%s": %s`, strings.ToLower(component), headerValue)
+func includes(list []string, v string) bool {
+	lv := strings.ToLower(v)
+	for _, e := range list {
+		if strings.ToLower(e) == lv {
+			return true
 		}
-
-		lines = append(lines, line)
 	}
-
-	return strings.Join(lines, "\n"), nil
+	return false
 }
 
-// buildSignatureInput creates the Signature-Input header value
-func (s *DefaultA2ASigner) buildSignatureInput(components []string, agentDID did.AgentDID, algorithm string, created int64, expires int64, nonce string) string {
-	// Format components
-	componentList := make([]string, len(components))
-	for i, comp := range components {
-		componentList[i] = fmt.Sprintf(`"%s"`, comp)
+func quoteComponents(components []string) []string {
+	out := make([]string, 0, len(components))
+	for _, c := range components {
+		c = strings.ToLower(strings.TrimSpace(c))
+		if len(c) > 0 && c[0] == '"' && c[len(c)-1] == '"' {
+			out = append(out, c)
+			continue
+		}
+		out = append(out, fmt.Sprintf(`"%s"`, c))
 	}
-
-	// Build parameter string
-	params := []string{
-		fmt.Sprintf("(%s)", strings.Join(componentList, " ")),
-	}
-
-	if created > 0 {
-		params = append(params, fmt.Sprintf("created=%d", created))
-	}
-
-	if expires > 0 {
-		params = append(params, fmt.Sprintf("expires=%d", expires))
-	}
-
-	if nonce != "" {
-		params = append(params, fmt.Sprintf(`nonce="%s"`, nonce))
-	}
-
-	params = append(params, fmt.Sprintf(`keyid="%s"`, agentDID))
-
-	if algorithm != "" {
-		params = append(params, fmt.Sprintf(`alg="%s"`, algorithm))
-	}
-
-	return fmt.Sprintf("sig1=%s", strings.Join(params, ";"))
+	return out
 }
 
-// buildSignatureHeader creates the Signature header value
-func (s *DefaultA2ASigner) buildSignatureHeader(signature []byte) string {
-	encoded := base64.StdEncoding.EncodeToString(signature)
-	return fmt.Sprintf("sig1=:%s:", encoded)
+// Ensure Content-Digest over entire body (sha-256, base64, RFC9421 syntax)
+func ensureContentDigestHeader(req *http.Request) error {
+	var body []byte
+	if req.Body != nil {
+		var err error
+		body, err = io.ReadAll(req.Body)
+		if err != nil {
+			return err
+		}
+	}
+	req.Body = io.NopCloser(bytes.NewReader(body))
+	req.ContentLength = int64(len(body))
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(body)), nil }
+
+	h := sha256.Sum256(body)
+	d := base64.StdEncoding.EncodeToString(h[:])
+	req.Header.Set("Content-Digest", "sha-256=:"+d+":")
+	return nil
 }
 
-// getAlgorithm returns the algorithm identifier for the given key type
-func (s *DefaultA2ASigner) getAlgorithm(keyType crypto.KeyType) string {
-	switch keyType {
-	case crypto.KeyTypeSecp256k1:
-		return "ecdsa-p256-sha256"
-	case crypto.KeyTypeEd25519:
+func (s *DefaultA2ASigner) getAlgorithm(k sagecrypto.KeyType) string {
+	switch k {
+	case sagecrypto.KeyTypeSecp256k1:
+		return "es256k"
+	case sagecrypto.KeyTypeEd25519:
 		return "ed25519"
 	default:
 		return ""
