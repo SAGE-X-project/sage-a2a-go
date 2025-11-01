@@ -1,3 +1,20 @@
+// Copyright (C) 2025 SAGE-X Project
+//
+// This file is part of sage-a2a-go.
+//
+// sage-a2a-go is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// sage-a2a-go is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with sage-a2a-go.  If not, see <https://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -67,7 +84,7 @@ func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (
 
 // This example demonstrates managing an agent with multiple cryptographic keys
 func main() {
-	fmt.Println("=== Multi-Key Agent Example ===\n")
+	fmt.Println("=== Multi-Key Agent Example ===")
 
 	ctx := context.Background()
 
@@ -145,7 +162,7 @@ func main() {
 		fmt.Printf("    KeyData: %s...\n", keyInfo.KeyData[:min(40, len(keyInfo.KeyData))])
 		fmt.Println()
 	}
-	fmt.Println("  ----------------------------------------\n")
+	fmt.Println("  ----------------------------------------")
 
 	// Step 5: Set up mock blockchain with both keys
 	fmt.Println("Step 5: Registering keys on blockchain (mock)...")
@@ -153,14 +170,14 @@ func main() {
 	mockClient := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
 			agentDID: {
-				did.KeyTypeECDSA:    ecdsaPubKey,
-				did.KeyTypeEd25519:  ed25519PubKey,
+				did.KeyTypeECDSA:   ecdsaPubKey,
+				did.KeyTypeEd25519: ed25519PubKey,
 			},
 		},
 	}
 
 	fmt.Println("  ✓ ECDSA key registered for Ethereum protocol")
-	fmt.Println("  ✓ Ed25519 key registered for Solana protocol\n")
+	fmt.Println("  ✓ Ed25519 key registered for Solana protocol")
 
 	// Step 6: Demonstrate protocol-based key selection
 	fmt.Println("Step 6: Protocol-based key selection...")
@@ -209,7 +226,7 @@ func main() {
 		log.Fatal(err)
 	}
 	fmt.Printf("  %s\n", string(cardJSON))
-	fmt.Println("  ----------------------------------------\n")
+	fmt.Println("  ----------------------------------------")
 
 	// Step 8: Demonstrate cross-chain capabilities
 	fmt.Println("Step 8: Cross-chain operation simulation...")

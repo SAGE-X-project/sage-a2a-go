@@ -1,3 +1,20 @@
+// Copyright (C) 2025 SAGE-X Project
+//
+// This file is part of sage-a2a-go.
+//
+// sage-a2a-go is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// sage-a2a-go is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with sage-a2a-go.  If not, see <https://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -113,7 +130,7 @@ func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (
 
 // This example demonstrates agent-to-agent communication with DID-based authentication
 func main() {
-	fmt.Println("=== Agent-to-Agent Communication Example ===\n")
+	fmt.Println("=== Agent-to-Agent Communication Example ===")
 
 	ctx := context.Background()
 
@@ -165,7 +182,7 @@ func main() {
 		},
 	}
 
-	fmt.Println("  ✓ Mock blockchain configured with agent public keys\n")
+	fmt.Println("  ✓ Mock blockchain configured with agent public keys")
 
 	// Step 4: Agent A creates and signs a task request
 	fmt.Println("Step 4: Agent A creating a task request...")

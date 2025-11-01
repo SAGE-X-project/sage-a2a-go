@@ -1,3 +1,20 @@
+// Copyright (C) 2025 SAGE-X Project
+//
+// This file is part of sage-a2a-go.
+//
+// sage-a2a-go is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// sage-a2a-go is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with sage-a2a-go.  If not, see <https://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -13,7 +30,7 @@ import (
 
 // This example demonstrates how to create a simple agent with DID and Agent Card
 func main() {
-	fmt.Println("=== Simple Agent with DID Example ===\n")
+	fmt.Println("=== Simple Agent with DID Example ===")
 
 	// Step 1: Create an agent DID
 	// In a real scenario, this would come from blockchain registration
@@ -62,7 +79,7 @@ func main() {
 	fmt.Printf("  Created At:   %s\n", time.Unix(card.CreatedAt, 0).Format(time.RFC3339))
 	fmt.Printf("  Expires At:   %s\n", time.Unix(card.ExpiresAt, 0).Format(time.RFC3339))
 	fmt.Printf("  Metadata:     %v\n", card.Metadata)
-	fmt.Println("  ----------------------------------------\n")
+	fmt.Println("  ----------------------------------------")
 
 	// Step 5: Check capabilities
 	fmt.Println("Step 5: Checking capabilities...")
