@@ -762,3 +762,106 @@ func TestSignRequest_UnsupportedKeyType(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported key type")
 }
+
+// Enhancement Test 7: Transfer-Encoding should be removed
+func TestSignRequest_TransferEncodingRemoved(t *testing.T) {
+	// TDD: Test that Transfer-Encoding header is properly cleaned up
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-enhancement-7")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	// Set Transfer-Encoding: chunked (conflicting with Content-Length)
+	req.Header.Set("Transfer-Encoding", "chunked")
+
+	// Execute
+	err := signer.SignRequest(ctx, req, testDID, keyPair)
+
+	// Assert - should succeed and remove Transfer-Encoding
+	require.NoError(t, err)
+
+	// Transfer-Encoding should be removed to avoid conflict with Content-Length
+	transferEncoding := req.Header.Get("Transfer-Encoding")
+	assert.Empty(t, transferEncoding, "Transfer-Encoding should be removed")
+
+	// Content-Length should be set
+	assert.NotZero(t, req.ContentLength, "Content-Length should be set")
+}
+
+// Enhancement Test 8: Malformed component identifiers should be handled
+func TestQuoteComponents_MalformedInput(t *testing.T) {
+	// TDD: Test that quoteComponents handles edge cases properly
+
+	testCases := []struct {
+		name     string
+		input    []string
+		expected []string
+	}{
+		{
+			name:     "Already quoted components",
+			input:    []string{`"@method"`, `"@path"`},
+			expected: []string{`"@method"`, `"@path"`},
+		},
+		{
+			name:     "Mixed quoted and unquoted",
+			input:    []string{`"@method"`, "@path"},
+			expected: []string{`"@method"`, `"@path"`},
+		},
+		{
+			name:     "Empty string should be skipped",
+			input:    []string{"@method", "", "@path"},
+			expected: []string{`"@method"`, `"@path"`},
+		},
+		{
+			name:     "Whitespace should be trimmed",
+			input:    []string{" @method ", "  @path  "},
+			expected: []string{`"@method"`, `"@path"`},
+		},
+		{
+			name:     "Double quotes should be stripped and re-quoted",
+			input:    []string{`"@met"hod"`},
+			expected: []string{`"@met"hod"`}, // Internal quotes preserved as-is
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := quoteComponents(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+// Enhancement Test 9: Error messages should include request context
+func TestSignRequest_ErrorContext(t *testing.T) {
+	// TDD: Test that error messages include helpful context
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-enhancement-9")
+	signer := NewDefaultA2ASigner()
+
+	// Create key pair with unsupported type to trigger error
+	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	keyPair := &mockKeyPair{
+		pubKey:  &privateKey.PublicKey,
+		privKey: privateKey,
+		keyType: crypto.KeyType("unknown"),
+	}
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	// Execute
+	err := signer.SignRequest(ctx, req, testDID, keyPair)
+
+	// Assert - error should contain useful context
+	require.Error(t, err)
+
+	// Should contain DID for traceability
+	assert.Contains(t, err.Error(), string(testDID), "Error should contain DID")
+
+	// Should contain URL for debugging
+	assert.Contains(t, err.Error(), req.URL.String(), "Error should contain URL")
+}

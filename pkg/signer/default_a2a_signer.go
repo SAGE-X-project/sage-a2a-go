@@ -104,7 +104,7 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 	}
 	alg, err := s.getAlgorithm(keyPair.Type())
 	if err != nil {
-		return err
+		return fmt.Errorf("%w (did: %s, url: %s)", err, agentDID, req.URL.String())
 	}
 	if opts.Algorithm != "" {
 		// Validate user-supplied algorithm against whitelist
@@ -127,13 +127,15 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 	priv := keyPair.PrivateKey()
 	signer, ok := priv.(gocrypto.Signer)
 	if !ok {
-		return fmt.Errorf("private key does not implement crypto.Signer: %T", priv)
+		return fmt.Errorf("private key does not implement crypto.Signer: %T (did: %s, url: %s)",
+			priv, agentDID, req.URL.String())
 	}
 
 	// RFC 9421 sign "sig1"
 	httpv := rfc9421.NewHTTPVerifier()
 	if err := httpv.SignRequest(req, "sig1", params, signer); err != nil {
-		return fmt.Errorf("rfc9421 signing failed: %w", err)
+		return fmt.Errorf("rfc9421 signing failed for %s (did: %s): %w",
+			req.URL.String(), agentDID, err)
 	}
 
 	return nil
@@ -153,10 +155,19 @@ func quoteComponents(components []string) []string {
 	out := make([]string, 0, len(components))
 	for _, c := range components {
 		c = strings.ToLower(strings.TrimSpace(c))
+
+		// Skip empty strings
+		if c == "" {
+			continue
+		}
+
+		// If already properly quoted, keep as-is
 		if len(c) > 0 && c[0] == '"' && c[len(c)-1] == '"' {
 			out = append(out, c)
 			continue
 		}
+
+		// Quote the component
 		out = append(out, fmt.Sprintf(`"%s"`, c))
 	}
 	return out
@@ -181,7 +192,11 @@ var allowedAlgorithms = map[sagecrypto.KeyType][]string{
 
 // Ensure Content-Digest over entire body (sha-256, base64, RFC9421 syntax)
 // This function buffers the entire request body in memory with a size limit.
+// It also removes Transfer-Encoding header to avoid conflicts with Content-Length.
 func ensureContentDigestHeader(req *http.Request) error {
+	// Remove Transfer-Encoding header to avoid conflict with Content-Length
+	req.Header.Del("Transfer-Encoding")
+
 	var body []byte
 	if req.Body != nil {
 		var err error
