@@ -72,8 +72,11 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 	if strings.TrimSpace(string(agentDID)) == "" {
 		return fmt.Errorf("DID cannot be empty")
 	}
-	if opts == nil || len(opts.Components) == 0 {
+	if opts == nil {
 		opts = &SigningOptions{Components: []string{"@method", "@path", "@query", "content-digest"}}
+	}
+	if len(opts.Components) == 0 {
+		opts.Components = []string{"@method", "@path", "@query", "content-digest"}
 	}
 
 	if !includes(opts.Components, "content-digest") {
@@ -88,9 +91,18 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 	created := opts.Created
 	if created == 0 {
 		created = time.Now().Unix()
+	} else {
+		// Validate user-supplied timestamp
+		if err := validateTimestamp(created); err != nil {
+			return fmt.Errorf("invalid timestamp: %w", err)
+		}
 	}
 	alg := s.getAlgorithm(keyPair.Type())
 	if opts.Algorithm != "" {
+		// Validate user-supplied algorithm against whitelist
+		if err := s.validateAlgorithm(opts.Algorithm, keyPair.Type()); err != nil {
+			return fmt.Errorf("invalid algorithm: %w", err)
+		}
 		alg = opts.Algorithm
 	}
 
@@ -142,14 +154,38 @@ func quoteComponents(components []string) []string {
 	return out
 }
 
+const (
+	// maxBodySize is the maximum allowed request body size (10MB)
+	maxBodySize = 10 * 1024 * 1024
+
+	// maxClockSkew is the maximum allowed clock difference (60 seconds)
+	maxClockSkew = 60
+
+	// maxValidAge is the maximum age for signatures (5 minutes)
+	maxValidAge = 300
+)
+
+// allowedAlgorithms defines the whitelist of permitted algorithms per key type
+var allowedAlgorithms = map[sagecrypto.KeyType][]string{
+	sagecrypto.KeyTypeSecp256k1: {"es256k"},
+	sagecrypto.KeyTypeEd25519:   {"ed25519"},
+}
+
 // Ensure Content-Digest over entire body (sha-256, base64, RFC9421 syntax)
+// This function buffers the entire request body in memory with a size limit.
 func ensureContentDigestHeader(req *http.Request) error {
 	var body []byte
 	if req.Body != nil {
 		var err error
-		body, err = io.ReadAll(req.Body)
+		// Use LimitReader to enforce maximum size
+		limitedReader := io.LimitReader(req.Body, maxBodySize+1)
+		body, err = io.ReadAll(limitedReader)
 		if err != nil {
 			return err
+		}
+		// Check if body exceeds limit
+		if len(body) > maxBodySize {
+			return fmt.Errorf("request body exceeds maximum size of %d bytes", maxBodySize)
 		}
 	}
 	req.Body = io.NopCloser(bytes.NewReader(body))
@@ -171,4 +207,39 @@ func (s *DefaultA2ASigner) getAlgorithm(k sagecrypto.KeyType) string {
 	default:
 		return ""
 	}
+}
+
+// validateAlgorithm checks if the algorithm is allowed for the given key type
+func (s *DefaultA2ASigner) validateAlgorithm(alg string, keyType sagecrypto.KeyType) error {
+	allowed, ok := allowedAlgorithms[keyType]
+	if !ok {
+		return fmt.Errorf("unsupported key type: %v", keyType)
+	}
+
+	algLower := strings.ToLower(alg)
+	for _, a := range allowed {
+		if a == algLower {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("algorithm %s not allowed for key type %v (allowed: %v)",
+		alg, keyType, allowed)
+}
+
+// validateTimestamp checks if the timestamp is within acceptable range
+func validateTimestamp(created int64) error {
+	now := time.Now().Unix()
+
+	// Check if timestamp is too far in the past
+	if created < now-maxValidAge {
+		return fmt.Errorf("signature timestamp too old (max age: %d seconds)", maxValidAge)
+	}
+
+	// Check if timestamp is in the future (allowing for clock skew)
+	if created > now+maxClockSkew {
+		return fmt.Errorf("signature timestamp in the future (max skew: %d seconds)", maxClockSkew)
+	}
+
+	return nil
 }

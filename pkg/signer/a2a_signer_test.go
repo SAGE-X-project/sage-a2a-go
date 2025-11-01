@@ -211,9 +211,10 @@ func TestDefaultA2ASigner_SignRequest_StandardComponents(t *testing.T) {
 	require.NoError(t, err)
 	sigInput := req.Header.Get("Signature-Input")
 
-	// Standard components should be included
+	// Standard components should be included (updated for RFC9421)
 	assert.Contains(t, sigInput, `"@method"`)
-	assert.Contains(t, sigInput, `"@target-uri"`)
+	assert.Contains(t, sigInput, `"@path"`)
+	assert.Contains(t, sigInput, `"content-digest"`)
 }
 
 func TestDefaultA2ASigner_SignRequest_ContextCancellation(t *testing.T) {
@@ -464,4 +465,198 @@ func TestDefaultA2ASigner_SignRequestWithOptions_NilOptions(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, req.Header.Get("Signature-Input"))
 	assert.NotEmpty(t, req.Header.Get("Signature"))
+}
+
+// Security Test 1: Body size limit protection
+func TestSignRequest_BodySizeLimit(t *testing.T) {
+	// TDD: Test for body size DoS protection
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-1")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	// Create 11MB body (exceeds 10MB limit)
+	largeBody := make([]byte, 11*1024*1024)
+	for i := range largeBody {
+		largeBody[i] = byte(i % 256)
+	}
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(string(largeBody)))
+	req.Header.Set("Content-Type", "application/octet-stream")
+
+	// Execute
+	err := signer.SignRequest(ctx, req, testDID, keyPair)
+
+	// Assert - should fail with size limit error
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "exceeds maximum size")
+}
+
+// Security Test 1b: Body size within limit should succeed
+func TestSignRequest_BodySizeWithinLimit(t *testing.T) {
+	// TDD: Test that reasonable body sizes work
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-1b")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	// Create 1MB body (within 10MB limit)
+	normalBody := make([]byte, 1*1024*1024)
+	for i := range normalBody {
+		normalBody[i] = byte(i % 256)
+	}
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(string(normalBody)))
+	req.Header.Set("Content-Type", "application/octet-stream")
+
+	// Execute
+	err := signer.SignRequest(ctx, req, testDID, keyPair)
+
+	// Assert - should succeed
+	require.NoError(t, err)
+	assert.NotEmpty(t, req.Header.Get("Signature-Input"))
+}
+
+// Security Test 2a: Invalid algorithm "none" should fail
+func TestSignRequest_AlgorithmNone(t *testing.T) {
+	// TDD: Test for algorithm injection attack
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-2a")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	opts := &SigningOptions{
+		Algorithm: "none", // Attack: disable signature
+	}
+
+	// Execute
+	err := signer.SignRequestWithOptions(ctx, req, testDID, keyPair, opts)
+
+	// Assert - should fail
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "algorithm")
+	assert.Contains(t, err.Error(), "not allowed")
+}
+
+// Security Test 2b: Mismatched algorithm for key type should fail
+func TestSignRequest_AlgorithmMismatch(t *testing.T) {
+	// TDD: Test algorithm confusion attack
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-2b")
+	keyPair := createMockEd25519KeyPair() // Ed25519 key
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	opts := &SigningOptions{
+		Algorithm: "es256k", // Wrong: trying to use secp256k1 algorithm with Ed25519 key
+	}
+
+	// Execute
+	err := signer.SignRequestWithOptions(ctx, req, testDID, keyPair, opts)
+
+	// Assert - should fail
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "algorithm")
+}
+
+// Security Test 2c: Valid algorithm should succeed
+func TestSignRequest_AlgorithmValid(t *testing.T) {
+	// TDD: Test that correct algorithm works
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-2c")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	opts := &SigningOptions{
+		Algorithm: "es256k", // Correct algorithm for secp256k1
+	}
+
+	// Execute
+	err := signer.SignRequestWithOptions(ctx, req, testDID, keyPair, opts)
+
+	// Assert - should succeed
+	require.NoError(t, err)
+	assert.NotEmpty(t, req.Header.Get("Signature-Input"))
+}
+
+// Security Test 3a: Old timestamp should fail (replay attack)
+func TestSignRequest_TimestampTooOld(t *testing.T) {
+	// TDD: Test replay attack prevention
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-3a")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	// 1 hour ago timestamp
+	opts := &SigningOptions{
+		Created: time.Now().Add(-1 * time.Hour).Unix(),
+	}
+
+	// Execute
+	err := signer.SignRequestWithOptions(ctx, req, testDID, keyPair, opts)
+
+	// Assert - should fail
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "timestamp")
+}
+
+// Security Test 3b: Future timestamp should fail
+func TestSignRequest_TimestampInFuture(t *testing.T) {
+	// TDD: Test time travel attack prevention
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-3b")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	// 5 minutes in future (beyond clock skew)
+	opts := &SigningOptions{
+		Created: time.Now().Add(5 * time.Minute).Unix(),
+	}
+
+	// Execute
+	err := signer.SignRequestWithOptions(ctx, req, testDID, keyPair, opts)
+
+	// Assert - should fail
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "timestamp")
+}
+
+// Security Test 3c: Recent timestamp should succeed
+func TestSignRequest_TimestampValid(t *testing.T) {
+	// TDD: Test that recent timestamps work
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-3c")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	// 30 seconds ago (within valid range)
+	opts := &SigningOptions{
+		Created: time.Now().Add(-30 * time.Second).Unix(),
+	}
+
+	// Execute
+	err := signer.SignRequestWithOptions(ctx, req, testDID, keyPair, opts)
+
+	// Assert - should succeed
+	require.NoError(t, err)
+	assert.NotEmpty(t, req.Header.Get("Signature-Input"))
 }
