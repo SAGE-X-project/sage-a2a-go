@@ -17,9 +17,9 @@ import (
 
 // mockEthereumClient is a mock implementation of ethereum.EthereumClientV4
 type mockEthereumClient struct {
-	keys       map[did.AgentDID][]did.AgentKey
-	publicKeys map[did.AgentDID]map[did.KeyType]interface{} // Direct public key mapping
-	err        error
+    keys       map[did.AgentDID][]did.AgentKey
+    publicKeys map[did.AgentDID]map[did.KeyType]interface{} // Direct public key mapping
+    err        error
 }
 
 func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID did.AgentDID) ([]did.AgentKey, error) {
@@ -34,9 +34,9 @@ func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID 
 }
 
 func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDID did.AgentDID, keyType did.KeyType) (interface{}, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
+    if m.err != nil {
+        return nil, m.err
+    }
 
 	// Use direct public key mapping to avoid unmarshal issues in tests
 	if m.publicKeys != nil {
@@ -47,7 +47,63 @@ func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDI
 		}
 	}
 
-	return nil, errors.New("key type not found")
+    return nil, errors.New("key type not found")
+}
+
+// Satisfy DIDResolver used by DefaultKeySelector
+func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
+    if m.err != nil {
+        return nil, m.err
+    }
+    d := did.AgentDID(didStr)
+    meta := &did.AgentMetadataV4{
+        DID:      d,
+        IsActive: true,
+        Keys:     []did.AgentKey{},
+    }
+    if ks, ok := m.keys[d]; ok {
+        meta.Keys = append(meta.Keys, ks...)
+    } else if m.publicKeys != nil {
+        if keyMap, ok := m.publicKeys[d]; ok {
+            for kt, pk := range keyMap {
+                keyData, _ := did.MarshalPublicKey(pk)
+                meta.Keys = append(meta.Keys, did.AgentKey{
+                    Type:      kt,
+                    KeyData:   keyData,
+                    Verified:  true,
+                    CreatedAt: time.Now(),
+                })
+            }
+        }
+    }
+    return meta, nil
+}
+
+// Satisfy PublicKeyClient used by DefaultDIDVerifier
+func (m *mockEthereumClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+    if m.err != nil {
+        return nil, m.err
+    }
+    if m.publicKeys != nil {
+        if keyMap, ok := m.publicKeys[agentDID]; ok {
+            if pk, ok2 := keyMap[did.KeyTypeECDSA]; ok2 {
+                return pk, nil
+            }
+            // return any
+            for _, v := range keyMap {
+                return v, nil
+            }
+        }
+    }
+    return nil, errors.New("DID not found")
+}
+
+func (m *mockEthereumClient) ResolveKEMKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+    if m.err != nil {
+        return nil, m.err
+    }
+    // Return dummy 32-byte KEM key
+    return make([]byte, 32), nil
 }
 
 // Helper functions to create test keys

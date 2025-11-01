@@ -7,8 +7,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage-a2a-go/pkg/verifier"
+	"github.com/sage-x-project/sage/pkg/agent/did"
+	ethdid "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 )
 
 type contextKey string
@@ -25,9 +26,15 @@ type DIDAuthMiddleware struct {
 	optional     bool
 }
 
+// DIDClient combines DID resolution capabilities needed by middleware
+// It must be able to resolve agent metadata (for key selection)
+// and resolve a concrete public key by key type.
 // NewDIDAuthMiddleware creates a new DID authentication middleware
-func NewDIDAuthMiddleware(client verifier.EthereumClient) *DIDAuthMiddleware {
-	selector := verifier.NewDefaultKeySelector(client)
+func NewDIDAuthMiddleware(
+	resolver *ethdid.AgentCardClient, // DIDResolver: GetAgentByDID
+	client *ethdid.EthereumClient, // PublicKeyClient: ResolvePublicKey/ResolveKEMKey
+) *DIDAuthMiddleware {
+	selector := verifier.NewDefaultKeySelector(resolver) // DIDResolver 기반 선택
 	sigVerifier := verifier.NewRFC9421Verifier()
 	didVerifier := verifier.NewDefaultDIDVerifier(client, selector, sigVerifier)
 

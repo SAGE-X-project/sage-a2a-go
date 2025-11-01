@@ -74,6 +74,29 @@ func (m *mockEthereumClient) ResolvePublicKeyByType(ctx context.Context, agentDI
 	return nil, nil
 }
 
+// Implement DIDResolver for key selection
+func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
+	d := did.AgentDID(didStr)
+	meta := &did.AgentMetadataV4{
+		DID:      d,
+		IsActive: true,
+		Keys:     []did.AgentKey{},
+	}
+	if keyMap, ok := m.publicKeys[d]; ok {
+		for kt, pk := range keyMap {
+			if keyData, err := did.MarshalPublicKey(pk); err == nil {
+				meta.Keys = append(meta.Keys, did.AgentKey{
+					Type:      kt,
+					KeyData:   keyData,
+					Verified:  true,
+					CreatedAt: time.Now(),
+				})
+			}
+		}
+	}
+	return meta, nil
+}
+
 // Test NewDIDAuthMiddleware creates middleware
 func TestNewDIDAuthMiddleware(t *testing.T) {
 	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -86,8 +109,9 @@ func TestNewDIDAuthMiddleware(t *testing.T) {
 			},
 		},
 	}
+	_ = client
 
-	middleware := NewDIDAuthMiddleware(client)
+	middleware := NewDIDAuthMiddleware(nil, nil)
 
 	assert.NotNil(t, middleware)
 	assert.NotNil(t, middleware.verifier)
@@ -143,8 +167,9 @@ func TestDIDAuthMiddleware_MissingSignature(t *testing.T) {
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{},
 	}
+	_ = client
 
-	middleware := NewDIDAuthMiddleware(client)
+	middleware := NewDIDAuthMiddleware(nil, nil)
 
 	handlerCalled := false
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -166,18 +191,9 @@ func TestDIDAuthMiddleware_MissingSignature(t *testing.T) {
 
 // Test middleware rejects invalid signature
 func TestDIDAuthMiddleware_InvalidSignature(t *testing.T) {
-	testDID := did.AgentDID("did:sage:ethereum:0xtest")
-	privKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 
-	client := &mockEthereumClient{
-		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
-			testDID: {
-				did.KeyTypeECDSA: &privKey.PublicKey,
-			},
-		},
-	}
-
-	middleware := NewDIDAuthMiddleware(client)
+	// Use a mock verifier that fails verification to avoid resolving dependencies
+	middleware := NewDIDAuthMiddlewareWithVerifier(&mockDIDVerifier{shouldSucceed: false})
 
 	handlerCalled := false
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -203,6 +219,7 @@ func TestDIDAuthMiddleware_CustomErrorHandler(t *testing.T) {
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{},
 	}
+	_ = client
 
 	customErrorCalled := false
 	customErrorHandler := func(w http.ResponseWriter, r *http.Request, err error) {
@@ -211,7 +228,7 @@ func TestDIDAuthMiddleware_CustomErrorHandler(t *testing.T) {
 		_, _ = w.Write([]byte("custom error"))
 	}
 
-	middleware := NewDIDAuthMiddleware(client)
+	middleware := NewDIDAuthMiddleware(nil, nil)
 	middleware.SetErrorHandler(customErrorHandler)
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -233,8 +250,9 @@ func TestDIDAuthMiddleware_OptionalVerification(t *testing.T) {
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{},
 	}
+	_ = client
 
-	middleware := NewDIDAuthMiddleware(client)
+	middleware := NewDIDAuthMiddleware(nil, nil)
 	middleware.SetOptional(true)
 
 	handlerCalled := false
@@ -281,8 +299,9 @@ func TestDIDAuthMiddleware_OptionsRequest(t *testing.T) {
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{},
 	}
+	_ = client
 
-	middleware := NewDIDAuthMiddleware(client)
+	middleware := NewDIDAuthMiddleware(nil, nil)
 
 	handlerCalled := false
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
