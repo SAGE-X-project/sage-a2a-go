@@ -24,6 +24,7 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -279,7 +280,8 @@ func TestDefaultA2ASigner_SignRequestWithOptions_CustomTimestamp(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "https://agent.example.com/task", nil)
 
-	customTimestamp := int64(1618884473)
+	// Use recent timestamp (30 seconds ago to pass validation)
+	customTimestamp := time.Now().Add(-30 * time.Second).Unix()
 	opts := &SigningOptions{
 		Created: customTimestamp,
 	}
@@ -290,7 +292,7 @@ func TestDefaultA2ASigner_SignRequestWithOptions_CustomTimestamp(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	sigInput := req.Header.Get("Signature-Input")
-	assert.Contains(t, sigInput, "created=1618884473")
+	assert.Contains(t, sigInput, fmt.Sprintf("created=%d", customTimestamp))
 }
 
 func TestDefaultA2ASigner_SignRequestWithOptions_Expires(t *testing.T) {
@@ -659,4 +661,104 @@ func TestSignRequest_TimestampValid(t *testing.T) {
 	// Assert - should succeed
 	require.NoError(t, err)
 	assert.NotEmpty(t, req.Header.Get("Signature-Input"))
+}
+
+// Security Test 4: Slice mutation should not affect caller
+func TestSignRequest_SliceMutationPrevention(t *testing.T) {
+	// TDD: Test that Components slice is not mutated
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-4")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	req1 := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test1"}`))
+	req2 := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test2"}`))
+	req3 := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test3"}`))
+
+	// Create options with specific components
+	opts := &SigningOptions{
+		Components: []string{"@method", "@path"},
+	}
+
+	// Store original length
+	originalLen := len(opts.Components)
+	originalComponents := make([]string, len(opts.Components))
+	copy(originalComponents, opts.Components)
+
+	// Execute multiple times with same options
+	err := signer.SignRequestWithOptions(ctx, req1, testDID, keyPair, opts)
+	require.NoError(t, err)
+
+	// Check that opts.Components is not modified
+	assert.Equal(t, originalLen, len(opts.Components), "Components length should not change")
+	assert.Equal(t, originalComponents, opts.Components, "Components should not be mutated")
+
+	// Second call - should not accumulate duplicates
+	err = signer.SignRequestWithOptions(ctx, req2, testDID, keyPair, opts)
+	require.NoError(t, err)
+	assert.Equal(t, originalLen, len(opts.Components), "Components length should not change after second call")
+
+	// Third call - verify no memory leak
+	err = signer.SignRequestWithOptions(ctx, req3, testDID, keyPair, opts)
+	require.NoError(t, err)
+	assert.Equal(t, originalLen, len(opts.Components), "Components length should not change after third call")
+}
+
+// Security Test 5: Invalid Content-Digest should be recomputed
+func TestSignRequest_ContentDigestRecompute(t *testing.T) {
+	// TDD: Test that pre-existing Content-Digest is always recomputed
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-5")
+	keyPair := createMockECDSAKeyPair()
+	signer := NewDefaultA2ASigner()
+
+	body := `{"data":"test"}`
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(body))
+
+	// Set an INVALID Content-Digest (attacker trying to inject wrong digest)
+	maliciousDigest := "sha-256=:INVALID_DIGEST_VALUE:"
+	req.Header.Set("Content-Digest", maliciousDigest)
+
+	// Execute
+	err := signer.SignRequest(ctx, req, testDID, keyPair)
+
+	// Assert - should succeed and recompute correct digest
+	require.NoError(t, err)
+
+	// Verify that Content-Digest was recomputed (not the malicious one)
+	actualDigest := req.Header.Get("Content-Digest")
+	assert.NotEqual(t, maliciousDigest, actualDigest, "Malicious digest should be replaced")
+	assert.Contains(t, actualDigest, "sha-256=:", "Should contain proper format")
+
+	// Verify it's the correct digest for the body
+	// We can't check exact value without knowing the hash, but we can verify it changed
+	assert.NotContains(t, actualDigest, "INVALID", "Should not contain INVALID")
+}
+
+// Security Test 6: Unsupported key type should fail with clear error
+func TestSignRequest_UnsupportedKeyType(t *testing.T) {
+	// TDD: Test that unsupported key types fail gracefully
+
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest-security-6")
+	signer := NewDefaultA2ASigner()
+
+	// Create mock key pair with unsupported key type (e.g., RSA)
+	privateKey, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	keyPair := &mockKeyPair{
+		pubKey:  &privateKey.PublicKey,
+		privKey: privateKey,
+		keyType: crypto.KeyType("rsa"), // Unsupported type
+	}
+
+	req := httptest.NewRequest("POST", "https://agent.example.com/task", strings.NewReader(`{"data":"test"}`))
+
+	// Execute
+	err := signer.SignRequest(ctx, req, testDID, keyPair)
+
+	// Assert - should fail with descriptive error
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported key type")
 }

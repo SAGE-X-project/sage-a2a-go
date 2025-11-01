@@ -75,17 +75,22 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 	if opts == nil {
 		opts = &SigningOptions{Components: []string{"@method", "@path", "@query", "content-digest"}}
 	}
-	if len(opts.Components) == 0 {
-		opts.Components = []string{"@method", "@path", "@query", "content-digest"}
+
+	// Create defensive copy of Components to avoid mutating caller's slice
+	components := make([]string, len(opts.Components))
+	copy(components, opts.Components)
+
+	if len(components) == 0 {
+		components = []string{"@method", "@path", "@query", "content-digest"}
 	}
 
-	if !includes(opts.Components, "content-digest") {
-		opts.Components = append(opts.Components, "content-digest")
+	if !includes(components, "content-digest") {
+		components = append(components, "content-digest")
 	}
-	if strings.TrimSpace(req.Header.Get("Content-Digest")) == "" {
-		if err := ensureContentDigestHeader(req); err != nil {
-			return fmt.Errorf("compute content-digest: %w", err)
-		}
+
+	// Always recompute Content-Digest to prevent digest injection attacks
+	if err := ensureContentDigestHeader(req); err != nil {
+		return fmt.Errorf("compute content-digest: %w", err)
 	}
 
 	created := opts.Created
@@ -97,7 +102,10 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 			return fmt.Errorf("invalid timestamp: %w", err)
 		}
 	}
-	alg := s.getAlgorithm(keyPair.Type())
+	alg, err := s.getAlgorithm(keyPair.Type())
+	if err != nil {
+		return err
+	}
 	if opts.Algorithm != "" {
 		// Validate user-supplied algorithm against whitelist
 		if err := s.validateAlgorithm(opts.Algorithm, keyPair.Type()); err != nil {
@@ -107,7 +115,7 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 	}
 
 	params := &rfc9421.SignatureInputParams{
-		CoveredComponents: quoteComponents(opts.Components),
+		CoveredComponents: quoteComponents(components), // Use copied components, not original
 		KeyID:             string(agentDID),
 		Algorithm:         alg,
 		Created:           created,
@@ -198,14 +206,14 @@ func ensureContentDigestHeader(req *http.Request) error {
 	return nil
 }
 
-func (s *DefaultA2ASigner) getAlgorithm(k sagecrypto.KeyType) string {
+func (s *DefaultA2ASigner) getAlgorithm(k sagecrypto.KeyType) (string, error) {
 	switch k {
 	case sagecrypto.KeyTypeSecp256k1:
-		return "es256k"
+		return "es256k", nil
 	case sagecrypto.KeyTypeEd25519:
-		return "ed25519"
+		return "ed25519", nil
 	default:
-		return ""
+		return "", fmt.Errorf("unsupported key type: %v", k)
 	}
 }
 
