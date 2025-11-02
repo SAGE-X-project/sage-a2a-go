@@ -39,6 +39,29 @@
 
 **sage-a2a-go = a2a-go + HTTP Transport + DID Auth**
 
+## Key Features
+
+### 🚀 High-Level Agent Framework (NEW in v1.7.0)
+
+Build SAGE protocol agents with **83% less code**:
+
+```go
+// Just 10 lines replaces 165 lines of boilerplate
+agent, err := framework.NewAgentFromEnv(
+    "payment", "PAYMENT", true, true,
+)
+```
+
+**Benefits:**
+- ✅ **Zero direct sage imports** - Framework handles all complexity
+- ✅ **Environment-based config** - Easy deployment
+- ✅ **Built-in HPKE** - Automatic encryption
+- ✅ **DID authentication** - Signature verification included
+- ✅ **Pure business logic** - Focus on what matters
+
+👉 [Learn more about the Agent Framework](pkg/agent/framework/README.md)
+👉 [See examples](examples/framework/)
+
 ## Architecture
 
 ```
