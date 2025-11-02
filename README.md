@@ -8,6 +8,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![A2A Protocol](https://img.shields.io/badge/A2A-v0.4.0-green)](https://a2a-protocol.org)
 [![SAGE Version](https://img.shields.io/badge/SAGE-v1.5.2-blue)](https://github.com/sage-x-project/sage)
+[![Release](https://img.shields.io/badge/release-v1.6.0-success)](https://github.com/SAGE-X-project/sage-a2a-go/releases/tag/v1.6.0)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
 ## Overview
@@ -280,11 +281,11 @@ This project automatically uses the fixed fork, so you don't need to worry about
 
 ## Components
 
-### Unified API Packages (New in v1.5.2)
+### Unified API Packages
 
 sage-a2a-go provides a complete unified API so you **only need to import sage-a2a-go packages**:
 
-#### 1. **pkg/crypto/** - Cryptographic Operations
+#### 1. **pkg/crypto/** - Cryptographic Operations (v1.5.2)
 Wraps SAGE crypto functionality with a simple interface:
 ```go
 import "github.com/sage-x-project/sage-a2a-go/pkg/crypto"
@@ -292,14 +293,15 @@ import "github.com/sage-x-project/sage-a2a-go/pkg/crypto"
 // Generate key pairs
 keyPair, _ := crypto.GenerateSecp256k1KeyPair()  // Ethereum
 keyPair, _ := crypto.GenerateEd25519KeyPair()    // Solana
+keyPair, _ := crypto.GenerateX25519KeyPair()     // HPKE/encryption
 
 // Key types
 crypto.KeyTypeSecp256k1
 crypto.KeyTypeEd25519
-crypto.KeyTypeX25519  // HPKE/encryption
+crypto.KeyTypeX25519
 ```
 
-#### 2. **pkg/identity/** - DID Management
+#### 2. **pkg/identity/** - DID Management (v1.5.2)
 Wraps SAGE DID functionality:
 ```go
 import "github.com/sage-x-project/sage-a2a-go/pkg/identity"
@@ -316,7 +318,7 @@ keyData, _ := identity.MarshalPublicKey(pubKey)
 pubKey, _ := identity.UnmarshalPublicKey(keyData, "secp256k1")
 ```
 
-#### 3. **pkg/agent/** - High-Level Agent Builder
+#### 3. **pkg/agent/** - High-Level Agent Builder (v1.5.2)
 Combines SAGE identity with A2A communication:
 ```go
 import "github.com/sage-x-project/sage-a2a-go/pkg/agent"
@@ -336,34 +338,99 @@ type Agent struct {
 }
 ```
 
+#### 4. **pkg/hpke/** - HPKE Client Wrapper (v1.6.0)
+Simplified HPKE (Hybrid Public Key Encryption) client for end-to-end encryption:
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/hpke"
+
+// Create HPKE client
+hpkeClient, err := hpke.NewClient(
+    clientDID,
+    keyPair,
+    transport,
+    resolver,
+    sessionMgr,
+    nil, // optional ClientOptions
+)
+
+// Initialize encrypted session
+sessionID, err := hpkeClient.InitializeSession(ctx, "context-123", peerDID)
+
+// Access session manager
+sessionMgr := hpkeClient.GetSessionManager()
+```
+
+#### 5. **pkg/registry/** - Registry Client Wrapper (v1.6.0)
+Three-phase registration wrapper for agent registration:
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/registry"
+
+// Create registration client
+client, err := registry.NewRegistrationClient(&registry.ClientConfig{
+    RPCURL:          "https://ethereum-rpc.example.com",
+    RegistryAddress: "0x1234...",
+    PrivateKey:      "your-private-key",
+})
+
+// Phase 1: Commit (wait 1-60 minutes)
+status, err := client.CommitRegistration(ctx, params)
+
+// Phase 2: Register (wait 1 hour)
+status, err = client.RegisterAgent(ctx, status)
+
+// Phase 3: Activate
+err = client.ActivateAgent(ctx, status)
+```
+
+#### 6. **pkg/session/** - Enhanced Session Manager (v1.6.0)
+Advanced session management for multi-peer scenarios:
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/session"
+
+sessionMgr := session.NewManager()
+
+// List sessions by peer DID
+sessions := sessionMgr.ListByRemoteDID(ctx, peerDID)
+
+// Get session count
+count := sessionMgr.Count()
+
+// Session metadata
+err := sessionMgr.SetMetadata(ctx, sessionID, "request_id", "req-123")
+value, err := sessionMgr.GetMetadata(ctx, sessionID, "request_id")
+
+// Cleanup sessions
+deleted := sessionMgr.DeleteByRemoteDID(ctx, peerDID)
+```
+
 **Philosophy**: Users should build agents using **only** sage-a2a-go imports. No need to directly import SAGE or A2A packages.
 
 ### Core Transport and Security
 
-#### 4. **pkg/transport/** - DID HTTP Transport
+#### 7. **pkg/transport/** - DID HTTP Transport
 Implements HTTP/JSON-RPC 2.0 with DID signatures:
 - `DIDHTTPTransport` - Main transport implementation
 - `WithDIDHTTPTransport()` - Factory option for a2a-go
 - `NewDIDAuthenticatedClient()` - Convenience function
 
-#### 5. **pkg/verifier/** - DID Verification
+#### 8. **pkg/verifier/** - DID Verification
 Verify HTTP signatures using DIDs:
 - `DIDVerifier` - Verify HTTP signatures using DIDs
 - `KeySelector` - Protocol-aware key selection (Ethereum/Solana/HPKE)
 - `RFC9421Verifier` - RFC 9421 implementation
 
-#### 6. **pkg/signer/** - HTTP Signing
+#### 9. **pkg/signer/** - HTTP Signing
 Sign HTTP requests with DID:
 - `A2ASigner` - Sign HTTP requests with DID
 - `DefaultA2ASigner` - RFC 9421 implementation with security hardening
 
-#### 7. **pkg/server/** - Server Middleware
+#### 10. **pkg/server/** - Server Middleware
 DID authentication for HTTP servers:
 - `DIDAuthMiddleware` - Middleware for verifying incoming requests
 - Extracts and validates DID signatures
 - Adds verified DID to request context
 
-#### 8. **pkg/protocol/** - Agent Cards
+#### 11. **pkg/protocol/** - Agent Cards
 Agent metadata and verification:
 - `AgentCard` - Agent metadata
 - `AgentCardSigner` - Sign/verify cards with JWS
@@ -372,7 +439,7 @@ Agent metadata and verification:
 
 ### ✅ Complete A2A Protocol Support
 
-All 10 client methods from A2A v0.4.0 specification with **91.8% test coverage** and comprehensive E2E tests.
+All 10 client methods from A2A v0.4.0 specification with **92.1% test coverage** and comprehensive E2E tests.
 
 ### ✅ Blockchain-Anchored Identity
 
@@ -404,17 +471,20 @@ DIDs stored on:
 
 ### Test Coverage
 
-The project maintains **91.8% average test coverage** across all packages:
+The project maintains **92.1% average test coverage** across all packages:
 
 | Package | Coverage | Tests |
 |---------|----------|-------|
 | `pkg/server` | 100.0% | 🏆 Full coverage |
+| `pkg/session` | 100.0% | 🏆 Full coverage (20 tests) |
 | `pkg/client` | 92.3% | Unit + integration |
 | `pkg/signer` | 92.2% | HTTP signing tests |
 | `pkg/protocol` | 91.2% | Card validation |
 | `pkg/verifier` | 88.0% | DID verification |
 | `pkg/transport` | 87.2% | HTTP transport |
-| **Total** | **91.8%** | **173 tests** |
+| `pkg/hpke` | 85.0% | HPKE client (9 tests) |
+| `pkg/registry` | 83.0% | Registry client (6 tests) |
+| **Total** | **92.1%** | **208 tests** |
 
 ### End-to-End Tests
 
@@ -687,26 +757,34 @@ The project uses the SAGE-X fork to ensure critical bug fixes are included. Moni
 
 ## Roadmap
 
-### v1.0.0-dev (Current)
+### v1.6.0 (Current - Released 2025-11-02)
 - ✅ HTTP/JSON-RPC 2.0 transport
 - ✅ DID signatures (RFC 9421)
 - ✅ A2A v0.4.0 protocol support
 - ✅ Server-Sent Events (SSE) for streaming
 - ✅ All core protocol methods (GetTask, SendMessage, ListTasks, etc.)
 - ✅ DID authentication middleware for servers
-- ✅ 91.8% test coverage (173 tests: Unit + Integration + E2E)
+- ✅ Unified API architecture (v1.5.2)
+- ✅ HPKE Client wrapper (v1.6.0)
+- ✅ Registry Client wrapper (v1.6.0)
+- ✅ Enhanced Session Manager (v1.6.0)
+- ✅ 92.1% test coverage (208 tests: Unit + Integration + E2E)
 - ✅ 6 complete example programs
 - ✅ Comprehensive documentation
 
-### Planned for v1.0.0 Release
-- [ ] Performance benchmarking and optimizations
-- [ ] Production deployment guide
-- [ ] Complete HTTP server example with JSON-RPC handler
+### v1.7.0 (Planned)
+- [ ] Enhanced error handling with custom error types
+- [ ] Retry logic for network operations
+- [ ] Connection pooling for HPKE sessions
+- [ ] Metrics and observability hooks
 
-### Future (v2.0.0+)
+### v2.0.0+ (Future)
 - [ ] WebSocket transport
 - [ ] HTTP/2 and HTTP/3 support
-- [ ] Metrics and observability (OpenTelemetry)
+- [ ] Plugin architecture for custom transports
+- [ ] GraphQL support for registry queries
+- [ ] Multi-chain registry support (Solana, Polygon)
+- [ ] WebAssembly compilation target
 - [ ] Rate limiting and quota management
 
 ## Contributing
