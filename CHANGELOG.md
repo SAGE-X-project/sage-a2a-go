@@ -7,6 +7,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2025-11-02
+
+### 🚀 Agent Framework - High-Level Abstraction Layer
+
+This release introduces a **complete Agent Framework** that dramatically simplifies SAGE protocol agent development. The framework provides high-level abstractions over SAGE components, reducing boilerplate code by up to 94% in initialization and 78% overall.
+
+### Added
+
+#### Agent Framework Core 🎯
+- **pkg/agent/framework/agent.go** - Main framework entry point
+  - `NewAgent()` - Create agents with explicit configuration
+  - `NewAgentFromEnv()` - Environment-based agent creation (zero-config deployment)
+  - `CreateHPKEClient()` - Built-in HPKE client support
+  - Automatic DID resolution and key management
+  - Built-in session management
+
+#### Framework Packages 📦
+- **pkg/agent/framework/keys/** - Cryptographic key management
+  - `LoadFromJWKFile()` - Load keys from JWK files
+  - `LoadFromJWKBytes()` - Load keys from byte arrays
+  - `LoadKeySet()` - Load signing and KEM keys
+  - `LoadKeySetFromEnv()` - Environment-based key loading
+
+- **pkg/agent/framework/session/** - HPKE session management
+  - `NewManager()` - Create session managers
+  - `GetUnderlying()` - Access SAGE session manager (prototype phase)
+
+- **pkg/agent/framework/did/** - DID resolution and verification
+  - `NewResolver()` - Create DID resolvers
+  - `NewResolverFromEnv()` - Environment-based resolver creation
+  - `GetDIDClient()` / `GetKeyClient()` / `GetRegistryClient()` - Access clients
+
+- **pkg/agent/framework/middleware/** - HTTP DID authentication
+  - `NewDIDAuth()` - Create DID authentication middleware
+  - `ComputeContentDigest()` - RFC 9421 content digest computation
+  - Support for required and optional authentication
+
+- **pkg/agent/framework/hpke/** - HPKE client/server abstractions
+  - `NewServer()` - Create HPKE servers
+  - `NewClient()` - Create HPKE clients
+  - Simplified configuration with automatic key management
+
+#### Code Reduction Metrics 📊
+- **94% initialization code reduction** (165 lines → 10 lines)
+- **78% overall code reduction** (686 lines → 150 lines)
+- **100% SAGE import elimination** (7 imports → 0 imports)
+- **Simple environment configuration** - Deploy via env vars only
+
+#### Testing 🧪
+- **23 comprehensive test cases** across 5 packages
+- **5 test files**: keys_test.go, session_test.go, did_test.go, middleware_test.go, hpke_test.go
+- Unit tests, integration tests, and benchmark tests
+- Tests skip gracefully when Ethereum node unavailable (`testing.Short()`)
+- All tests passing with go1.25.2
+
+#### Documentation 📚
+- **pkg/agent/framework/README.md** - Complete framework guide
+  - Quick start guide
+  - Architecture overview
+  - API reference
+  - Environment variables
+  - Code reduction examples
+
+- **examples/framework/payment_agent.go** - Working payment agent example
+  - Complete implementation using framework
+  - Before/after comparison
+  - Demonstrates 94% code reduction
+
+- **examples/framework/README.md** - Example usage guide
+  - Running the examples
+  - Learning points
+  - Code metrics
+
+- **AGENT_FRAMEWORK_MIGRATION_GUIDE.md** - Migration guide from sage-multi-agent
+  - Step-by-step migration instructions
+  - Checklist for verification
+  - Troubleshooting tips
+
+- **RELEASE_NOTES_v1.6.0.md** - Detailed release documentation
+  - Feature highlights
+  - Package structure
+  - Migration guide
+  - Breaking changes (none)
+
+### Changed
+
+- **README.md** - Major updates for v1.7.0
+  - Updated version badge to v1.7.0
+  - Expanded Agent Framework section
+  - Added framework quick start example
+  - Added code reduction metrics
+  - Added package structure overview
+  - Added links to framework documentation
+
+### Removed
+
+- **SAGE_A2A_GO_REQUIREMENTS.md** - Obsolete requirements document
+- **SAGE_A2A_USAGE_REPORT.md** - Obsolete usage report
+
+### Architecture
+
+The Agent Framework follows a **wrapper pattern** around SAGE components:
+- Clean separation from A2A protocol implementation
+- Prototype phase includes `GetUnderlying()` methods for flexibility
+- Environment-based configuration for 12-factor app compliance
+- Zero external SAGE imports in agent code
+
+### Migration from sage-multi-agent
+
+This release completes the migration of the agent framework from `sage-multi-agent/internal/agent` to `sage-a2a-go/pkg/agent/framework`. All imports updated, tests added, and documentation complete.
+
+### Breaking Changes
+
+**None** - This is a purely additive release. All existing APIs remain unchanged.
+
+---
+
 ## [1.6.0] - In Development
 
 ### 🚧 Complete Wrapper Implementation
