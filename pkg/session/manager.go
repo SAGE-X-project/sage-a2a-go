@@ -293,3 +293,102 @@ func (m *Manager) Refresh(ctx context.Context, sessionID SessionID) error {
 
 	return nil
 }
+
+// ListByRemoteDID returns all active sessions for a specific remote DID
+func (m *Manager) ListByRemoteDID(ctx context.Context, remoteDID identity.AgentDID) []*Session {
+	var sessions []*Session
+
+	m.sessions.Range(func(_, value interface{}) bool {
+		session := value.(*Session)
+		if session.RemoteDID == remoteDID && time.Now().Before(session.ExpiresAt) {
+			sessions = append(sessions, session)
+		}
+		return true
+	})
+
+	return sessions
+}
+
+// DeleteByRemoteDID removes all sessions for a specific remote DID
+func (m *Manager) DeleteByRemoteDID(ctx context.Context, remoteDID identity.AgentDID) int {
+	deletedCount := 0
+
+	m.sessions.Range(func(key, value interface{}) bool {
+		session := value.(*Session)
+		if session.RemoteDID == remoteDID {
+			m.sessions.Delete(key)
+			deletedCount++
+		}
+		return true
+	})
+
+	return deletedCount
+}
+
+// Count returns the total number of active sessions
+func (m *Manager) Count() int {
+	count := 0
+	now := time.Now()
+
+	m.sessions.Range(func(_, value interface{}) bool {
+		session := value.(*Session)
+		if now.Before(session.ExpiresAt) {
+			count++
+		}
+		return true
+	})
+
+	return count
+}
+
+// SetMetadata sets metadata for a session
+func (m *Manager) SetMetadata(ctx context.Context, sessionID SessionID, key, value string) error {
+	session, err := m.Get(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+
+	session.Metadata[key] = value
+	return nil
+}
+
+// GetMetadata retrieves metadata from a session
+func (m *Manager) GetMetadata(ctx context.Context, sessionID SessionID, key string) (string, error) {
+	session, err := m.Get(ctx, sessionID)
+	if err != nil {
+		return "", err
+	}
+
+	value, ok := session.Metadata[key]
+	if !ok {
+		return "", fmt.Errorf("metadata key not found: %s", key)
+	}
+
+	return value, nil
+}
+
+// Exists checks if a session exists and is valid
+func (m *Manager) Exists(ctx context.Context, sessionID SessionID) bool {
+	_, err := m.Get(ctx, sessionID)
+	return err == nil
+}
+
+// GetExpiresAt returns the expiration time for a session
+func (m *Manager) GetExpiresAt(ctx context.Context, sessionID SessionID) (time.Time, error) {
+	session, err := m.Get(ctx, sessionID)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return session.ExpiresAt, nil
+}
+
+// GetRemoteDID returns the remote DID for a session
+func (m *Manager) GetRemoteDID(ctx context.Context, sessionID SessionID) (identity.AgentDID, error) {
+	session, err := m.Get(ctx, sessionID)
+	if err != nil {
+		return "", err
+	}
+
+	return session.RemoteDID, nil
+}
