@@ -7,7 +7,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/sage-x-project/sage-a2a-go)](https://goreportcard.com/report/github.com/sage-x-project/sage-a2a-go)
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![A2A Protocol](https://img.shields.io/badge/A2A-v0.4.0-green)](https://a2a-protocol.org)
-[![SAGE Version](https://img.shields.io/badge/SAGE-v1.3.1-blue)](https://github.com/sage-x-project/sage)
+[![SAGE Version](https://img.shields.io/badge/SAGE-v1.5.2-blue)](https://github.com/sage-x-project/sage)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
 ## Overview
@@ -96,17 +96,19 @@ import (
     "log"
 
     "github.com/a2aproject/a2a-go/a2a"
-    "github.com/sage-x-project/sage-a2a-go/pkg/transport"
-    "github.com/sage-x-project/sage/pkg/agent/crypto"
-    "github.com/sage-x-project/sage/pkg/agent/did"
+    "github.com/sage-x-project/sage-a2a-go/pkg/agent"
+    "github.com/sage-x-project/sage-a2a-go/pkg/crypto"
+    "github.com/sage-x-project/sage-a2a-go/pkg/identity"
 )
 
 func main() {
     ctx := context.Background()
 
-    // Your agent's identity
-    myDID := did.AgentDID("did:sage:ethereum:0x...")
+    // Generate key pair using sage-a2a-go crypto package
     myKeyPair, _ := crypto.GenerateSecp256k1KeyPair()
+
+    // Your agent's identity
+    myDID := identity.AgentDID("did:sage:ethereum:0x...")
 
     // Target agent's card
     targetCard := &a2a.AgentCard{
@@ -115,17 +117,12 @@ func main() {
         // ...
     }
 
-    // Create client with DID-authenticated HTTP transport
-    client, err := transport.NewDIDAuthenticatedClient(
-        ctx,
-        myDID,
-        myKeyPair,
-        targetCard,
-    )
+    // Create agent with DID authentication (unified API)
+    myAgent, err := agent.NewAgent(ctx, myDID, myKeyPair, targetCard)
     if err != nil {
         log.Fatal(err)
     }
-    defer client.Destroy()
+    defer myAgent.A2AClient.Destroy()
 
     // Send message (automatically signed with DID)
     message := &a2a.MessageSendParams{
@@ -137,7 +134,7 @@ func main() {
         },
     }
 
-    task, err := client.SendMessage(ctx, message)
+    task, err := myAgent.A2AClient.SendMessage(ctx, message)
     if err != nil {
         log.Fatal(err)
     }
@@ -151,8 +148,14 @@ func main() {
 ```go
 import (
     "github.com/a2aproject/a2a-go/a2aclient"
+    "github.com/sage-x-project/sage-a2a-go/pkg/crypto"
+    "github.com/sage-x-project/sage-a2a-go/pkg/identity"
     "github.com/sage-x-project/sage-a2a-go/pkg/transport"
 )
+
+// Generate key pair
+myKeyPair, _ := crypto.GenerateSecp256k1KeyPair()
+myDID := identity.AgentDID("did:sage:ethereum:0x...")
 
 // Use a2a-go's factory with DID HTTP transport
 client, err := a2aclient.NewFromCard(
@@ -277,29 +280,91 @@ This project automatically uses the fixed fork, so you don't need to worry about
 
 ## Components
 
-### 1. DID HTTP Transport (`pkg/transport/`)
+### Unified API Packages (New in v1.5.2)
 
+sage-a2a-go provides a complete unified API so you **only need to import sage-a2a-go packages**:
+
+#### 1. **pkg/crypto/** - Cryptographic Operations
+Wraps SAGE crypto functionality with a simple interface:
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/crypto"
+
+// Generate key pairs
+keyPair, _ := crypto.GenerateSecp256k1KeyPair()  // Ethereum
+keyPair, _ := crypto.GenerateEd25519KeyPair()    // Solana
+
+// Key types
+crypto.KeyTypeSecp256k1
+crypto.KeyTypeEd25519
+crypto.KeyTypeX25519  // HPKE/encryption
+```
+
+#### 2. **pkg/identity/** - DID Management
+Wraps SAGE DID functionality:
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/identity"
+
+// Work with DIDs
+did := identity.AgentDID("did:sage:ethereum:0x...")
+chain, address, _ := identity.ParseDID(did)
+
+// Validate DIDs
+err := identity.ValidateDID(string(did))
+
+// Marshal/unmarshal public keys
+keyData, _ := identity.MarshalPublicKey(pubKey)
+pubKey, _ := identity.UnmarshalPublicKey(keyData, "secp256k1")
+```
+
+#### 3. **pkg/agent/** - High-Level Agent Builder
+Combines SAGE identity with A2A communication:
+```go
+import "github.com/sage-x-project/sage-a2a-go/pkg/agent"
+
+// Build complete agent with one function
+agent, err := agent.NewAgent(ctx, myDID, myKeyPair, targetCard)
+
+// Access A2A client
+task, _ := agent.A2AClient.SendMessage(ctx, message)
+
+// Agent structure
+type Agent struct {
+    DID       identity.AgentDID
+    KeyPair   crypto.KeyPair
+    A2AClient *a2aclient.Client
+    Card      *a2a.AgentCard
+}
+```
+
+**Philosophy**: Users should build agents using **only** sage-a2a-go imports. No need to directly import SAGE or A2A packages.
+
+### Core Transport and Security
+
+#### 4. **pkg/transport/** - DID HTTP Transport
 Implements HTTP/JSON-RPC 2.0 with DID signatures:
 - `DIDHTTPTransport` - Main transport implementation
 - `WithDIDHTTPTransport()` - Factory option for a2a-go
 - `NewDIDAuthenticatedClient()` - Convenience function
 
-### 2. DID Verification (`pkg/verifier/`)
-
-**Existing components** (preserved from earlier work):
+#### 5. **pkg/verifier/** - DID Verification
+Verify HTTP signatures using DIDs:
 - `DIDVerifier` - Verify HTTP signatures using DIDs
-- `KeySelector` - Protocol-aware key selection
+- `KeySelector` - Protocol-aware key selection (Ethereum/Solana/HPKE)
 - `RFC9421Verifier` - RFC 9421 implementation
 
-### 3. HTTP Signing (`pkg/signer/`)
-
-**Existing components** (preserved):
+#### 6. **pkg/signer/** - HTTP Signing
+Sign HTTP requests with DID:
 - `A2ASigner` - Sign HTTP requests with DID
-- `DefaultA2ASigner` - RFC 9421 implementation
+- `DefaultA2ASigner` - RFC 9421 implementation with security hardening
 
-### 4. Agent Cards (`pkg/protocol/`)
+#### 7. **pkg/server/** - Server Middleware
+DID authentication for HTTP servers:
+- `DIDAuthMiddleware` - Middleware for verifying incoming requests
+- Extracts and validates DID signatures
+- Adds verified DID to request context
 
-**Existing components** (preserved):
+#### 8. **pkg/protocol/** - Agent Cards
+Agent metadata and verification:
 - `AgentCard` - Agent metadata
 - `AgentCardSigner` - Sign/verify cards with JWS
 
@@ -602,7 +667,7 @@ import "github.com/sage-x-project/sage-a2a-go/pkg/version"
 info := version.Get()
 // info.SageA2AVersion = "1.0.0-dev"
 // info.A2AProtocolVersion = "0.4.0"
-// info.SAGEVersion = "1.3.1"
+// info.SAGEVersion = "1.5.2"
 // info.A2AGoForkVersion = "v0.0.0-20251026124015-70634d9eddae"
 ```
 

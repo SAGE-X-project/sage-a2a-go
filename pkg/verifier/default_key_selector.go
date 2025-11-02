@@ -39,10 +39,13 @@ func NewDefaultKeySelector(resolver DIDResolver) *DefaultKeySelector {
 	return &DefaultKeySelector{resolver: resolver}
 }
 
-// - "ethereum"/"eth": ECDSA(secp256k1)
-// - "solana"/"sol": Ed25519
-// - "hpke"/"kem"/"x25519": X25519(32바이트) — HPKE용
-// - 그 외: (1) Ed25519, (2) ECDSA, (3) 첫 검증된 키 순
+// SelectKey selects the appropriate public key for a given protocol
+//
+// Protocol-based key selection:
+//   - "ethereum"/"eth": ECDSA (secp256k1)
+//   - "solana"/"sol": Ed25519
+//   - "hpke"/"kem"/"x25519": X25519 (32 bytes) for HPKE
+//   - Others: Fallback order (1) Ed25519, (2) ECDSA, (3) first verified key
 func (s *DefaultKeySelector) SelectKey(ctx context.Context, agentDID did.AgentDID, protocol string) (crypto.PublicKey, did.KeyType, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, 0, fmt.Errorf("context error: %w", err)
@@ -57,7 +60,7 @@ func (s *DefaultKeySelector) SelectKey(ctx context.Context, agentDID did.AgentDI
 		return nil, 0, fmt.Errorf("agent inactive or not found: %s", agentDID)
 	}
 
-	// 빠른 HPKE/KEM 처리: 우선 KME 전용 필드, 없으면 키 배열에서 X25519 검색
+	// Fast HPKE/KEM handling: check KEM-specific field first, then search key array for X25519
 	proto := strings.ToLower(strings.TrimSpace(protocol))
 	switch proto {
 	case "hpke", "kem", "x25519":
@@ -65,7 +68,7 @@ func (s *DefaultKeySelector) SelectKey(ctx context.Context, agentDID did.AgentDI
 			return crypto.PublicKey(meta.PublicKEMKey), did.KeyTypeX25519, nil
 		}
 		if pk, ok := firstByType(meta.Keys, did.KeyTypeX25519); ok {
-			// X25519는 32바이트 로우 형태를 그대로 반환
+			// X25519 returns raw 32-byte format
 			return crypto.PublicKey(pk.KeyData), did.KeyTypeX25519, nil
 		}
 		return nil, 0, errors.New("no X25519 (HPKE) key registered")
@@ -74,7 +77,7 @@ func (s *DefaultKeySelector) SelectKey(ctx context.Context, agentDID did.AgentDI
 		if k, ok := firstByType(meta.Keys, did.KeyTypeECDSA); ok {
 			return unmarshalByKeyType(k.KeyData, did.KeyTypeECDSA)
 		}
-		// 폴백: Ed25519 → 기타
+		// Fallback: Ed25519 → others
 		if k, ok := firstByType(meta.Keys, did.KeyTypeEd25519); ok {
 			return unmarshalByKeyType(k.KeyData, did.KeyTypeEd25519)
 		}
@@ -84,14 +87,14 @@ func (s *DefaultKeySelector) SelectKey(ctx context.Context, agentDID did.AgentDI
 		if k, ok := firstByType(meta.Keys, did.KeyTypeEd25519); ok {
 			return unmarshalByKeyType(k.KeyData, did.KeyTypeEd25519)
 		}
-		// 폴백: ECDSA → 기타
+		// Fallback: ECDSA → others
 		if k, ok := firstByType(meta.Keys, did.KeyTypeECDSA); ok {
 			return unmarshalByKeyType(k.KeyData, did.KeyTypeECDSA)
 		}
 		return firstAnyVerified(meta.Keys)
 	}
 
-	// 기본 정책: Ed25519 > ECDSA > 첫 검증된 키
+	// Default policy: Ed25519 > ECDSA > first verified key
 	if k, ok := firstByType(meta.Keys, did.KeyTypeEd25519); ok {
 		return unmarshalByKeyType(k.KeyData, did.KeyTypeEd25519)
 	}
@@ -115,7 +118,7 @@ func firstAnyVerified(keys []did.AgentKey) (crypto.PublicKey, did.KeyType, error
 		if !k.Verified {
 			continue
 		}
-		// X25519는 로우 바이트 반환, 서명키는 Unmarshal
+		// X25519 returns raw bytes, signature keys need Unmarshal
 		switch k.Type {
 		case did.KeyTypeX25519:
 			if len(k.KeyData) == 32 {
@@ -126,7 +129,7 @@ func firstAnyVerified(keys []did.AgentKey) (crypto.PublicKey, did.KeyType, error
 		case did.KeyTypeEd25519:
 			return unmarshalByKeyType(k.KeyData, did.KeyTypeEd25519)
 		default:
-			// 모르는 타입은 스킵
+			// Skip unknown types
 		}
 	}
 	return nil, 0, errors.New("no verified keys available")
@@ -147,7 +150,7 @@ func unmarshalByKeyType(raw []byte, kt did.KeyType) (crypto.PublicKey, did.KeyTy
 		}
 		return pk.(crypto.PublicKey), did.KeyTypeEd25519, nil
 	case did.KeyTypeX25519:
-		// X25519는 32바이트 raw 반환 (HPKE 용도)
+		// X25519 returns 32-byte raw format (for HPKE)
 		if len(raw) != 32 {
 			return nil, 0, fmt.Errorf("x25519: want 32 bytes, got %d", len(raw))
 		}

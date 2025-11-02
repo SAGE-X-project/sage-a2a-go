@@ -9,9 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚧 In Development
 
-This version is under active development with **A2A Protocol v0.4.0 support**, **Server-Sent Events (SSE) streaming**, and **DID authentication**.
+This version is under active development with **SAGE v1.5.2 upgrade**, **unified API architecture**, **A2A Protocol v0.4.0 support**, **Server-Sent Events (SSE) streaming**, and **DID authentication**.
 
 ### Added
+
+#### Unified API Architecture 🏗️ (v1.5.2)
+- **pkg/crypto/** - Unified cryptographic operations wrapper
+  - `GenerateSecp256k1KeyPair()` - Ethereum key generation
+  - `GenerateEd25519KeyPair()` - Solana key generation
+  - Type aliases for `KeyPair` and `KeyType`
+  - Wraps SAGE crypto without exposing implementation
+
+- **pkg/identity/** - Unified DID management wrapper
+  - `AgentDID` type alias
+  - `ParseDID()` - Parse DID components
+  - `ValidateDID()` - DID validation
+  - `MarshalPublicKey()` / `UnmarshalPublicKey()` - Key serialization
+  - Wraps SAGE DID functionality
+
+- **pkg/agent/** - High-level agent builder
+  - `NewAgent()` - One-function agent creation
+  - Combines DID authentication with A2A communication
+  - `Agent` struct with DID, KeyPair, A2AClient, and Card
+  - Complete abstraction - users only need sage-a2a-go imports
+
+**Architecture Philosophy**: Users can now build complete A2A agents using **only** sage-a2a-go packages. No need to directly import SAGE or A2A libraries. This enables cleaner integration and better separation of concerns.
 
 #### SSE Streaming Support ✨
 - **SendStreamingMessage** - Real-time message streaming via SSE
@@ -86,14 +108,24 @@ This version is under active development with **A2A Protocol v0.4.0 support**, *
 ### Changed
 
 #### Dependency Updates
-- **SAGE v1.3.1** (from v1.1.0)
-  - Added P-256 key generator support
-  - Enhanced cryptographic capabilities
+- **SAGE v1.5.2** (from v1.3.1)
+  - KEM (Key Encapsulation Mechanism) naming corrections per RFC 9180
+  - Security enhancements in HTTP message signing
+  - Go 1.25.2 compatibility
+  - HPKE client synchronization improvements
+  - Updated all KME→KEM references throughout codebase
 
 - **A2A Protocol v0.4.0** (from v0.3.0)
   - ListTasks method support
   - Enhanced pagination
   - Additional task filters
+
+#### Code Quality & Internationalization
+- Translated all Korean comments to English
+  - Updated pkg/verifier/default_key_selector.go
+  - Updated pkg/signer/default_a2a_signer.go
+  - Updated pkg/server/middleware.go
+- Improved code documentation consistency
 
 #### Code Quality
 - Removed obsolete "NotImplemented" tests
