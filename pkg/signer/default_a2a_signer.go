@@ -123,7 +123,7 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 		Nonce:             opts.Nonce,
 	}
 
-	// 표준 crypto.Signer 확보
+	// Get standard crypto.Signer
 	priv := keyPair.PrivateKey()
 	signer, ok := priv.(gocrypto.Signer)
 	if !ok {
@@ -131,7 +131,7 @@ func (s *DefaultA2ASigner) SignRequestWithOptions(
 			priv, agentDID, req.URL.String())
 	}
 
-	// RFC 9421 sign "sig1"
+	// RFC 9421 sign with "sig1" label
 	httpv := rfc9421.NewHTTPVerifier()
 	if err := httpv.SignRequest(req, "sig1", params, signer); err != nil {
 		return fmt.Errorf("rfc9421 signing failed for %s (did: %s): %w",

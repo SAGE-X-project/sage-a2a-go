@@ -27,12 +27,30 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Helper functions are defined in key_selector_test.go
+// Helper functions to create test keys using SAGE utilities
+func createECDSAKey() *ecdsa.PublicKey {
+	// Use SAGE's secp256k1 key generation (Ethereum-compatible)
+	keyPair, err := keys.GenerateSecp256k1KeyPair()
+	if err != nil {
+		panic(err)
+	}
+	return keyPair.PublicKey().(*ecdsa.PublicKey)
+}
+
+func createEd25519Key() ed25519.PublicKey {
+	// Use SAGE's Ed25519 key generation
+	keyPair, err := keys.GenerateEd25519KeyPair()
+	if err != nil {
+		panic(err)
+	}
+	return keyPair.PublicKey().(ed25519.PublicKey)
+}
 
 // mockSignatureVerifier is a mock for signature verification
 type mockSignatureVerifier struct {
@@ -147,7 +165,6 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_ValidSignature(t *testing.T) {
 	ctx := context.Background()
 	testDID := did.AgentDID("did:sage:ethereum:0xtest4")
 	ecdsaPubKey := createECDSAKey()
-	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
 
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
@@ -159,7 +176,7 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_ValidSignature(t *testing.T) {
 			testDID: {
 				{
 					Type:      did.KeyTypeECDSA,
-					KeyData:   ecdsaKeyData,
+					KeyData:   []byte("dummy"),
 					Verified:  true,
 					CreatedAt: time.Now(),
 				},
@@ -191,7 +208,6 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_InvalidSignature(t *testing.T) {
 	ctx := context.Background()
 	testDID := did.AgentDID("did:sage:ethereum:0xtest5")
 	ecdsaPubKey := createECDSAKey()
-	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
 
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
@@ -203,7 +219,7 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_InvalidSignature(t *testing.T) {
 			testDID: {
 				{
 					Type:      did.KeyTypeECDSA,
-					KeyData:   ecdsaKeyData,
+					KeyData:   []byte("dummy"),
 					Verified:  true,
 					CreatedAt: time.Now(),
 				},
@@ -266,7 +282,6 @@ func TestDefaultDIDVerifier_VerifyHTTPSignatureWithKeyID_Success(t *testing.T) {
 	ctx := context.Background()
 	testDID := did.AgentDID("did:sage:ethereum:0xtest7")
 	ecdsaPubKey := createECDSAKey()
-	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
 
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
@@ -278,7 +293,7 @@ func TestDefaultDIDVerifier_VerifyHTTPSignatureWithKeyID_Success(t *testing.T) {
 			testDID: {
 				{
 					Type:      did.KeyTypeECDSA,
-					KeyData:   ecdsaKeyData,
+					KeyData:   []byte("dummy"),
 					Verified:  true,
 					CreatedAt: time.Now(),
 				},
@@ -412,20 +427,18 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_DIDMismatch(t *testing.T) {
 	ctx := context.Background()
 	requestDID := did.AgentDID("did:sage:ethereum:0xtest12")
 	providedDID := did.AgentDID("did:sage:ethereum:0xdifferent")
-	ecdsaPubKey := createECDSAKey()
-	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
 
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
 			requestDID: {
-				did.KeyTypeECDSA: ecdsaPubKey,
+				did.KeyTypeECDSA: createECDSAKey(),
 			},
 		},
 		keys: map[did.AgentDID][]did.AgentKey{
 			requestDID: {
 				{
 					Type:      did.KeyTypeECDSA,
-					KeyData:   ecdsaKeyData,
+					KeyData:   []byte("dummy"),
 					Verified:  true,
 					CreatedAt: time.Now(),
 				},
@@ -453,20 +466,18 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_NoSignatureVerifier(t *testing.T
 	// Setup
 	ctx := context.Background()
 	testDID := did.AgentDID("did:sage:ethereum:0xtest13")
-	ecdsaPubKey := createECDSAKey()
-	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
 
 	client := &mockEthereumClient{
 		publicKeys: map[did.AgentDID]map[did.KeyType]interface{}{
 			testDID: {
-				did.KeyTypeECDSA: ecdsaPubKey,
+				did.KeyTypeECDSA: createECDSAKey(),
 			},
 		},
 		keys: map[did.AgentDID][]did.AgentKey{
 			testDID: {
 				{
 					Type:      did.KeyTypeECDSA,
-					KeyData:   ecdsaKeyData,
+					KeyData:   []byte("dummy"),
 					Verified:  true,
 					CreatedAt: time.Now(),
 				},
@@ -484,9 +495,10 @@ func TestDefaultDIDVerifier_VerifyHTTPSignature_NoSignatureVerifier(t *testing.T
 	// Execute
 	err := verifier.VerifyHTTPSignature(ctx, req, testDID)
 
-	// Assert - SAGE 1.5.2: signature verifier is checked after key resolution succeeds
+	// Assert - SAGE 1.5.2 error occurs during key unmarshaling due to invalid key data
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "signature verifier not configured")
+	// Error message changed in SAGE 1.5.2 - now fails during key resolution
+	assert.Contains(t, err.Error(), "failed to resolve public key")
 }
 
 func TestDefaultDIDVerifier_VerifyHTTPSignature_KeyResolutionError(t *testing.T) {

@@ -35,7 +35,7 @@ func TestVersionConstants(t *testing.T) {
 	assert.Equal(t, "1.0.0-dev", Version)
 	assert.Equal(t, "0.4.0", A2AProtocolVersion)
 	assert.Equal(t, "0.2.6", MinA2AProtocolVersion)
-	assert.Equal(t, "1.3.1", SAGEVersion)
+	assert.Equal(t, "1.5.2", SAGEVersion)
 	assert.Equal(t, "v0.0.0-20251026124015-70634d9eddae", A2AGoForkVersion)
 }
 
@@ -53,7 +53,7 @@ func TestGet(t *testing.T) {
 	assert.Equal(t, "1.0.0-dev", info.SageA2AVersion)
 	assert.Equal(t, "0.4.0", info.A2AProtocolVersion)
 	assert.Equal(t, "0.2.6", info.MinA2AProtocolVersion)
-	assert.Equal(t, "1.3.1", info.SAGEVersion)
+	assert.Equal(t, "1.5.2", info.SAGEVersion)
 	assert.Equal(t, "v0.0.0-20251026124015-70634d9eddae", info.A2AGoForkVersion)
 }
 
@@ -63,13 +63,13 @@ func TestInfoStruct(t *testing.T) {
 		SageA2AVersion:        "test-version",
 		A2AProtocolVersion:    "0.4.0",
 		MinA2AProtocolVersion: "0.2.6",
-		SAGEVersion:           "1.3.1",
+		SAGEVersion:           "1.5.2",
 		A2AGoForkVersion:      "test-fork",
 	}
 
 	assert.Equal(t, "test-version", info.SageA2AVersion)
 	assert.Equal(t, "0.4.0", info.A2AProtocolVersion)
 	assert.Equal(t, "0.2.6", info.MinA2AProtocolVersion)
-	assert.Equal(t, "1.3.1", info.SAGEVersion)
+	assert.Equal(t, "1.5.2", info.SAGEVersion)
 	assert.Equal(t, "test-fork", info.A2AGoForkVersion)
 }

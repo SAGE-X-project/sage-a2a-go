@@ -31,7 +31,7 @@ const (
 	MinA2AProtocolVersion = "0.2.6"
 
 	// SAGEVersion is the SAGE core version required
-	SAGEVersion = "1.3.1"
+	SAGEVersion = "1.5.2"
 
 	// A2AGoForkVersion is the SAGE-X fork version of a2a-go being used
 	// This fork includes critical bug fixes for Message Parts marshaling

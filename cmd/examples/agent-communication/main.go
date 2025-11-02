@@ -128,6 +128,20 @@ func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (
     return meta, nil
 }
 
+// ResolvePublicKey satisfies verifier.PublicKeyClient interface
+func (m *mockEthereumClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+    if pubKey, found := m.publicKeys[agentDID]; found {
+        return pubKey, nil
+    }
+    return nil, fmt.Errorf("DID not found: %s", agentDID)
+}
+
+// ResolveKEMKey satisfies verifier.PublicKeyClient interface (added in SAGE 1.5.2)
+func (m *mockEthereumClient) ResolveKEMKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+    // For this demo, we don't use HPKE/KEM keys
+    return nil, fmt.Errorf("KEM key not available for demo agent: %s", agentDID)
+}
+
 // This example demonstrates agent-to-agent communication with DID-based authentication
 func main() {
 	fmt.Println("=== Agent-to-Agent Communication Example ===")

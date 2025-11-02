@@ -51,7 +51,7 @@ func NewDIDAuthMiddleware(
 	resolver *ethdid.AgentCardClient, // DIDResolver: GetAgentByDID
 	client *ethdid.EthereumClient, // PublicKeyClient: ResolvePublicKey/ResolveKEMKey
 ) *DIDAuthMiddleware {
-	selector := verifier.NewDefaultKeySelector(resolver) // DIDResolver 기반 선택
+	selector := verifier.NewDefaultKeySelector(resolver) // DIDResolver-based key selector
 	sigVerifier := verifier.NewRFC9421Verifier()
 	didVerifier := verifier.NewDefaultDIDVerifier(client, selector, sigVerifier)
 

@@ -21,12 +21,11 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/elliptic"
-	"crypto/rand"
 	"errors"
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,9 +33,11 @@ import (
 
 // mockEthereumClient is a mock implementation of ethereum.EthereumClientV4
 type mockEthereumClient struct {
-    keys       map[did.AgentDID][]did.AgentKey
-    publicKeys map[did.AgentDID]map[did.KeyType]interface{} // Direct public key mapping
-    err        error
+    keys         map[did.AgentDID][]did.AgentKey
+    publicKeys   map[did.AgentDID]map[did.KeyType]interface{} // Direct public key mapping
+    publicKEMKey map[did.AgentDID][]byte                      // PublicKEMKey field for HPKE tests
+    isActive     map[did.AgentDID]bool                        // IsActive field
+    err          error
 }
 
 func (m *mockEthereumClient) ResolveAllPublicKeys(ctx context.Context, agentDID did.AgentDID) ([]did.AgentKey, error) {
@@ -73,11 +74,28 @@ func (m *mockEthereumClient) GetAgentByDID(ctx context.Context, didStr string) (
         return nil, m.err
     }
     d := did.AgentDID(didStr)
+
+    // Check isActive map, default to true if not specified
+    isActive := true
+    if m.isActive != nil {
+        if active, ok := m.isActive[d]; ok {
+            isActive = active
+        }
+    }
+
     meta := &did.AgentMetadataV4{
         DID:      d,
-        IsActive: true,
+        IsActive: isActive,
         Keys:     []did.AgentKey{},
     }
+
+    // Add PublicKEMKey if available
+    if m.publicKEMKey != nil {
+        if kemKey, ok := m.publicKEMKey[d]; ok {
+            meta.PublicKEMKey = kemKey
+        }
+    }
+
     if ks, ok := m.keys[d]; ok {
         meta.Keys = append(meta.Keys, ks...)
     } else if m.publicKeys != nil {
@@ -123,24 +141,23 @@ func (m *mockEthereumClient) ResolveKEMKey(ctx context.Context, agentDID did.Age
     return make([]byte, 32), nil
 }
 
-// Helper functions to create test keys
+// Helper functions to create test keys using SAGE utilities
 func createECDSAKey() *ecdsa.PublicKey {
-	// Create a dummy ECDSA public key for testing
-	// Using P256 for simplicity in unit tests
-	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	// Use SAGE's secp256k1 key generation (Ethereum-compatible)
+	keyPair, err := keys.GenerateSecp256k1KeyPair()
 	if err != nil {
 		panic(err)
 	}
-	return &privateKey.PublicKey
+	return keyPair.PublicKey().(*ecdsa.PublicKey)
 }
 
 func createEd25519Key() ed25519.PublicKey {
-	// Create a dummy Ed25519 public key for testing
-	pubKey, _, err := ed25519.GenerateKey(rand.Reader)
+	// Use SAGE's Ed25519 key generation
+	keyPair, err := keys.GenerateEd25519KeyPair()
 	if err != nil {
 		panic(err)
 	}
-	return pubKey
+	return keyPair.PublicKey().(ed25519.PublicKey)
 }
 
 func TestDefaultKeySelector_SelectKey_EthereumProtocol(t *testing.T) {
@@ -456,10 +473,10 @@ func TestDefaultKeySelector_SelectKey_UnmarshalFailure(t *testing.T) {
 	// Execute
 	pubKey, _, err := selector.SelectKey(ctx, testDID, "unknown")
 
-	// Assert - should fail on unmarshal
+	// Assert - should fail on unmarshal (SAGE 1.5.2 changed error message format)
 	require.Error(t, err)
 	assert.Nil(t, pubKey)
-	assert.Contains(t, err.Error(), "failed to unmarshal")
+	assert.Contains(t, err.Error(), "unmarshal secp256k1")
 }
 
 func TestDefaultKeySelector_SelectKey_KeyTypeUnknown(t *testing.T) {
@@ -495,4 +512,257 @@ func TestDefaultKeySelector_SelectKey_KeyTypeUnknown(t *testing.T) {
 	// Assert - should fail on unmarshal with unknown key type
 	require.Error(t, err)
 	assert.Nil(t, pubKey)
+}
+
+func TestDefaultKeySelector_SelectKey_HPKE_FromPublicKEMKey(t *testing.T) {
+	// Test Case 12: HPKE/KEM key selection from PublicKEMKey field
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest12")
+
+	// Create 32-byte X25519 key for HPKE
+	kemKey := make([]byte, 32)
+	for i := range kemKey {
+		kemKey[i] = byte(i)
+	}
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {},
+		},
+		publicKEMKey: map[did.AgentDID][]byte{
+			testDID: kemKey,
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute - test all HPKE protocol aliases
+	protocols := []string{"hpke", "kem", "x25519"}
+	for _, protocol := range protocols {
+		pubKey, keyType, err := selector.SelectKey(ctx, testDID, protocol)
+
+		// Assert
+		require.NoError(t, err, "protocol: %s", protocol)
+		assert.NotNil(t, pubKey, "protocol: %s", protocol)
+		assert.Equal(t, did.KeyTypeX25519, keyType, "protocol: %s", protocol)
+		assert.Equal(t, kemKey, pubKey, "protocol: %s", protocol)
+	}
+}
+
+func TestDefaultKeySelector_SelectKey_HPKE_FromKeysArray(t *testing.T) {
+	// Test Case 13: HPKE/KEM key selection from Keys array
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest13")
+
+	// Create 32-byte X25519 key for HPKE
+	kemKey := make([]byte, 32)
+	for i := range kemKey {
+		kemKey[i] = byte(i + 10)
+	}
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {
+				{
+					Type:      did.KeyTypeX25519,
+					KeyData:   kemKey,
+					Signature: []byte("sig"),
+					Verified:  true,
+					CreatedAt: time.Now(),
+				},
+			},
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute
+	pubKey, keyType, err := selector.SelectKey(ctx, testDID, "hpke")
+
+	// Assert
+	require.NoError(t, err)
+	assert.NotNil(t, pubKey)
+	assert.Equal(t, did.KeyTypeX25519, keyType)
+	assert.Equal(t, kemKey, pubKey)
+}
+
+func TestDefaultKeySelector_SelectKey_HPKE_NoKeyAvailable(t *testing.T) {
+	// Test Case 14: HPKE/KEM protocol but no X25519 key available
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest14")
+
+	// Only ECDSA key available, no X25519
+	ecdsaPubKey := createECDSAKey()
+	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {
+				{
+					Type:      did.KeyTypeECDSA,
+					KeyData:   ecdsaKeyData,
+					Signature: []byte("sig"),
+					Verified:  true,
+					CreatedAt: time.Now(),
+				},
+			},
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute
+	pubKey, keyType, err := selector.SelectKey(ctx, testDID, "hpke")
+
+	// Assert - should fail with "no X25519 (HPKE) key registered"
+	require.Error(t, err)
+	assert.Nil(t, pubKey)
+	assert.Equal(t, did.KeyType(0), keyType)
+	assert.Contains(t, err.Error(), "no X25519 (HPKE) key registered")
+}
+
+func TestDefaultKeySelector_SelectKey_InactiveAgent(t *testing.T) {
+	// Test Case 15: Agent is inactive
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest15")
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {},
+		},
+		isActive: map[did.AgentDID]bool{
+			testDID: false, // Set agent as inactive
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute
+	pubKey, keyType, err := selector.SelectKey(ctx, testDID, "")
+
+	// Assert
+	require.Error(t, err)
+	assert.Nil(t, pubKey)
+	assert.Equal(t, did.KeyType(0), keyType)
+	assert.Contains(t, err.Error(), "inactive or not found")
+}
+
+func TestDefaultKeySelector_SelectKey_Ed25519FallbackForEthereum(t *testing.T) {
+	// Test Case 16: Ethereum protocol with only Ed25519 available (fallback)
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest16")
+
+	ed25519PubKey := createEd25519Key()
+	ed25519KeyData, _ := did.MarshalPublicKey(ed25519PubKey)
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {
+				{
+					Type:      did.KeyTypeEd25519,
+					KeyData:   ed25519KeyData,
+					Signature: []byte("sig"),
+					Verified:  true,
+					CreatedAt: time.Now(),
+				},
+			},
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute - test all Ethereum protocol aliases
+	protocols := []string{"ethereum", "eth", "eip155"}
+	for _, protocol := range protocols {
+		pubKey, keyType, err := selector.SelectKey(ctx, testDID, protocol)
+
+		// Assert - should fallback to Ed25519
+		require.NoError(t, err, "protocol: %s", protocol)
+		assert.NotNil(t, pubKey, "protocol: %s", protocol)
+		assert.Equal(t, did.KeyTypeEd25519, keyType, "protocol: %s", protocol)
+	}
+}
+
+func TestDefaultKeySelector_SelectKey_ECDSAFallbackForSolana(t *testing.T) {
+	// Test Case 17: Solana protocol with only ECDSA available (fallback)
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest17")
+
+	ecdsaPubKey := createECDSAKey()
+	ecdsaKeyData, _ := did.MarshalPublicKey(ecdsaPubKey)
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {
+				{
+					Type:      did.KeyTypeECDSA,
+					KeyData:   ecdsaKeyData,
+					Signature: []byte("sig"),
+					Verified:  true,
+					CreatedAt: time.Now(),
+				},
+			},
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute - test all Solana protocol aliases
+	protocols := []string{"solana", "sol"}
+	for _, protocol := range protocols {
+		pubKey, keyType, err := selector.SelectKey(ctx, testDID, protocol)
+
+		// Assert - should fallback to ECDSA
+		require.NoError(t, err, "protocol: %s", protocol)
+		assert.NotNil(t, pubKey, "protocol: %s", protocol)
+		assert.Equal(t, did.KeyTypeECDSA, keyType, "protocol: %s", protocol)
+	}
+}
+
+func TestDefaultKeySelector_SelectKey_X25519InvalidLength(t *testing.T) {
+	// Test Case 18: X25519 key with invalid length (not 32 bytes)
+
+	// Setup
+	ctx := context.Background()
+	testDID := did.AgentDID("did:sage:ethereum:0xtest18")
+
+	// Invalid X25519 key (not 32 bytes)
+	invalidKemKey := make([]byte, 16) // Wrong size
+
+	client := &mockEthereumClient{
+		keys: map[did.AgentDID][]did.AgentKey{
+			testDID: {
+				{
+					Type:      did.KeyTypeX25519,
+					KeyData:   invalidKemKey,
+					Signature: []byte("sig"),
+					Verified:  true,
+					CreatedAt: time.Now(),
+				},
+			},
+		},
+	}
+
+	selector := NewDefaultKeySelector(client)
+
+	// Execute
+	pubKey, keyType, err := selector.SelectKey(ctx, testDID, "")
+
+	// Assert - should skip invalid X25519 key and fail
+	require.Error(t, err)
+	assert.Nil(t, pubKey)
+	assert.Equal(t, did.KeyType(0), keyType)
+	assert.Contains(t, err.Error(), "no verified keys available")
 }
