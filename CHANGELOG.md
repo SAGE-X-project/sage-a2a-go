@@ -7,9 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - In Development
+
+### 🚧 Complete Wrapper Implementation
+
+This version completes the unified API wrapper architecture started in v1.5.2, providing high-level abstractions for all SAGE features.
+
+### Added
+
+#### HPKE Client Wrapper 🔐
+- **pkg/hpke/client.go** - Simplified HPKE client wrapper
+  - `NewClient()` - Create HPKE client with simplified API
+  - `InitializeSession()` - Establish end-to-end encrypted sessions
+  - Automatic DID-based authentication
+  - Session key management integration
+  - **9 new tests** for HPKE client functionality
+
+#### Registry Client Wrapper 📋
+- **pkg/registry/client.go** - Three-phase registration wrapper
+  - `CommitRegistration()` - Phase 1: Anti-front-running commitment
+  - `RegisterAgent()` - Phase 2: Reveal commitment and register
+  - `ActivateAgent()` - Phase 3: Time-locked activation
+  - `NewRegistrationParams()` - Helper for building registration parameters
+  - **6 new tests** for registry client functionality
+
+#### Enhanced Session Manager 🔑
+- **Additional session management methods**:
+  - `ListByRemoteDID()` - Find all sessions for a specific peer
+  - `DeleteByRemoteDID()` - Cleanup all sessions for a peer
+  - `Count()` - Get total active sessions
+  - `SetMetadata()` / `GetMetadata()` - Session metadata management
+  - `Exists()` - Check session validity
+  - `GetExpiresAt()` - Get session expiration time
+  - `GetRemoteDID()` - Get peer DID for a session
+  - **20 comprehensive tests** for session manager (100% coverage)
+
+### Testing
+- **35 new tests** added across v1.6.0 features
+- All tests passing (session: 20, registry: 6, hpke: 9)
+- Unit tests for client creation, validation, and error handling
+
+## [1.5.2] - 2025-11-02
+
 ### 🚧 In Development
 
-This version is under active development with **SAGE v1.5.2 upgrade**, **unified API architecture**, **A2A Protocol v0.4.0 support**, **Server-Sent Events (SSE) streaming**, and **DID authentication**.
+This version includes **SAGE v1.5.2 upgrade**, **unified API architecture**, **A2A Protocol v0.4.0 support**, **Server-Sent Events (SSE) streaming**, and **DID authentication**.
 
 ### Added
 
