@@ -8,7 +8,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org/)
 [![A2A Protocol](https://img.shields.io/badge/A2A-v0.4.0-green)](https://a2a-protocol.org)
 [![SAGE Version](https://img.shields.io/badge/SAGE-v1.5.2-blue)](https://github.com/sage-x-project/sage)
-[![Release](https://img.shields.io/badge/release-v1.6.0-success)](https://github.com/SAGE-X-project/sage-a2a-go/releases/tag/v1.6.0)
+[![Release](https://img.shields.io/badge/release-v1.7.0-success)](https://github.com/SAGE-X-project/sage-a2a-go/releases/tag/v1.7.0)
 [![License](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](LICENSE)
 
 ## Overview
@@ -43,24 +43,64 @@
 
 ### 🚀 High-Level Agent Framework (NEW in v1.7.0)
 
-Build SAGE protocol agents with **83% less code**:
+Build SAGE protocol agents with **83% less code** and **zero direct sage imports**:
 
 ```go
-// Just 10 lines replaces 165 lines of boilerplate
+import "github.com/sage-x-project/sage-a2a-go/pkg/agent/framework"
+
+// Initialize agent in just 4 lines (replaces 165 lines of boilerplate)
 agent, err := framework.NewAgentFromEnv(
-    "payment", "PAYMENT", true, true,
+    "payment",  // agent name
+    "PAYMENT",  // environment variable prefix
+    true,       // enable HPKE encryption
+    true,       // require signature verification
 )
+if err != nil {
+    log.Fatal(err)
+}
+
+// Use the agent's HTTP server for receiving messages
+httpServer := agent.GetHTTPServer()
+
+// Create HPKE client for sending encrypted messages
+transport := prototx.NewA2ATransport(...)
+hpkeClient, err := agent.CreateHPKEClient(transport)
 ```
+
+**Code Reduction:**
+- **Initialization**: 165 lines → 10 lines (**94% reduction**)
+- **Full Agent**: ~686 lines → ~150 lines (**78% reduction**)
+- **Direct sage imports**: 7 → 0 (**100% elimination**)
 
 **Benefits:**
 - ✅ **Zero direct sage imports** - Framework handles all complexity
-- ✅ **Environment-based config** - Easy deployment
-- ✅ **Built-in HPKE** - Automatic encryption
+- ✅ **Environment-based config** - Easy deployment with env vars
+- ✅ **Built-in HPKE** - Automatic encryption for A2A communication
 - ✅ **DID authentication** - Signature verification included
-- ✅ **Pure business logic** - Focus on what matters
+- ✅ **Pure business logic** - Focus on what matters, not crypto details
+- ✅ **Comprehensive tests** - 23 test cases covering all functionality
 
-👉 [Learn more about the Agent Framework](pkg/agent/framework/README.md)
-👉 [See examples](examples/framework/)
+**Package Structure:**
+```
+pkg/agent/framework/
+├── agent.go          - Main framework (NewAgent, NewAgentFromEnv)
+├── keys/             - Cryptographic key management
+├── session/          - HPKE session management
+├── did/              - DID resolution and verification
+├── middleware/       - HTTP DID authentication
+└── hpke/             - HPKE client/server abstractions
+```
+
+**Documentation:**
+- 📖 [Framework Guide](pkg/agent/framework/README.md) - Complete API reference
+- 💡 [Examples](examples/framework/) - Working payment agent example
+- 📋 [Migration Guide](AGENT_FRAMEWORK_MIGRATION_GUIDE.md) - Migrating from sage-multi-agent
+- ✅ [Verification Report](MIGRATION_VERIFICATION_REPORT.md) - Migration verification
+
+**Quick Links:**
+- [View Framework Source](pkg/agent/framework/)
+- [Run Example](examples/framework/payment_agent.go)
+- [Read Design Docs](AGENT_FRAMEWORK_MIGRATION_GUIDE.md)
 
 ## Architecture
 
